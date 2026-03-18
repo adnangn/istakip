@@ -120,7 +120,7 @@
     </style>
 </head>
 
-<body class="h-screen flex flex-col text-slate-800 overflow-hidden relative">
+<body class="h-screen flex flex-col text-slate-800 overflow-y-auto relative">
 
     <!-- LOGIN SCREEN OVERLAY -->
     <div id="login-overlay"
@@ -163,7 +163,7 @@
 
     <!-- MAIN APP CONTAINER -->
     <div id="main-app"
-        class="h-full flex flex-col w-full opacity-0 pointer-events-none transition-opacity duration-500">
+        class="h-full min-h-0 flex flex-col w-full opacity-0 pointer-events-none transition-opacity duration-500">
 
         <!-- Header Gradient Top Bar -->
         <div class="h-1 bg-gradient-to-r from-brand-500 to-blue-600 w-full shrink-0"></div>
@@ -206,23 +206,71 @@
         </header>
 
         <!-- Dashboard Header and Project Selector Row -->
-        <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex justify-between items-center z-10 shrink-0">
-            <div class="flex items-center gap-4">
-                <label class="text-sm font-bold text-slate-700">Aktif Proje:</label>
-                <select id="project-selector" onchange="switchProject(this.value)"
-                    class="bg-white border text-sm font-semibold border-slate-300 text-slate-700 rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-80 p-2 shadow-sm transition-all focus:outline-none">
-                    <!-- Options will be injected via JS -->
-                </select>
-                <button onclick="openCompanyModal()"
-                    class="ml-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors shadow-sm">
-                    <i class="fa-solid fa-address-card mr-1"></i> Firma / Belge Kimliği
-                </button>
-                <button onclick="openNewProjectModal()"
-                    class="ml-2 px-3 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-100 transition-colors shadow-sm">
-                    <i class="fa-solid fa-plus text-brand-600 mr-1"></i> Yeni Proje
-                </button>
-            </div>
-            <div class="flex items-center gap-2">
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 z-10 shrink-0">
+            <div class="flex justify-between items-center gap-4 flex-wrap">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <button onclick="toggleCompletionSortMode()"
+                        class="px-2.5 py-2 bg-slate-100 border border-slate-300 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors shadow-sm"
+                        id="completion-sort-btn" title="Tamamlama zamanına göre sırala">
+                        <i class="fa-solid fa-arrow-down-short-wide"></i>
+                    </button>
+                    <label class="text-sm font-bold text-slate-700">Aktif Proje:</label>
+                    <select id="project-selector" onchange="switchProject(this.value)"
+                        class="bg-white border text-sm font-semibold border-slate-300 text-slate-700 rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-80 p-2 shadow-sm transition-all focus:outline-none">
+                        <!-- Options will be injected via JS -->
+                    </select>
+
+                    <button onclick="toggleFavoriteProject()"
+                        class="px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm"
+                        id="favorite-toggle-btn" title="Projeyi favorilere sabitle">
+                        <i class="fa-regular fa-star mr-1"></i> Yıldızla
+                    </button>
+
+                    <select id="project-status-selector" onchange="updateActiveProjectStatus(this.value)"
+                        class="bg-white border text-xs font-bold border-slate-300 text-slate-700 rounded-lg focus:ring-brand-500 focus:border-brand-500 p-2 shadow-sm transition-all focus:outline-none">
+                        <option value="Bekliyor">Bekliyor</option>
+                        <option value="Acil">Acil</option>
+                        <option value="Müşteriden Evrak Bekleniyor">Müşteriden Evrak Bekleniyor</option>
+                        <option value="Tamamlandı">Tamamlandı</option>
+                    </select>
+
+                    <button onclick="toggleArchiveProject()"
+                        class="px-3 py-2 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors shadow-sm"
+                        id="archive-toggle-btn" title="Projeyi arşive al veya geri çıkar">
+                        <i class="fa-solid fa-box-archive mr-1"></i> Arşive Al
+                    </button>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="relative">
+                            <i class="fa-solid fa-building absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="project-search-company" oninput="applyProjectSearchFilters()" placeholder="Firma adıyla ara"
+                                class="w-44 pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-brand-500 focus:border-brand-500 transition-all focus:outline-none shadow-sm">
+                        </div>
+                        <div class="relative">
+                            <i class="fa-solid fa-file-signature absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="project-search-docnum" oninput="applyProjectSearchFilters()" placeholder="Belge No ile ara"
+                                class="w-44 pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-brand-500 focus:border-brand-500 transition-all focus:outline-none shadow-sm">
+                        </div>
+                        <button onclick="toggleAdvancedSearch()"
+                            class="px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shadow-sm">
+                            <i class="fa-solid fa-sliders mr-1"></i> Gelişmiş Arama
+                        </button>
+                        <button onclick="clearProjectSearchFilters()"
+                            class="px-3 py-2 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors shadow-sm">
+                            <i class="fa-solid fa-eraser mr-1"></i> Temizle
+                        </button>
+                    </div>
+
+                    <button onclick="openCompanyModal()"
+                        class="ml-1 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors shadow-sm">
+                        <i class="fa-solid fa-address-card mr-1"></i> Firma / Belge Kimliği
+                    </button>
+                    <button onclick="openNewProjectModal()"
+                        class="ml-1 px-3 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-100 transition-colors shadow-sm">
+                        <i class="fa-solid fa-plus text-brand-600 mr-1"></i> Yeni Proje
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
                 <button onclick="openAdminPanel()"
                     class="px-3 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition-colors">
                     <i class="fa-solid fa-gears mr-1"></i> Ayarlar & Yedekleme
@@ -236,13 +284,55 @@
                     <i class="fa-solid fa-arrow-right-from-bracket mr-1 text-slate-500"></i> Çıkış Yap
                 </button>
             </div>
+
+            <div id="advanced-search-panel" class="hidden mt-3 bg-white border border-slate-200 rounded-xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                        <i class="fa-solid fa-filter mr-1 text-blue-500"></i> Süreç Tipi Filtresi
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="selectAllProcessTypeFilters()" class="text-[11px] font-bold text-blue-600 hover:text-blue-700">Tümünü Seç</button>
+                        <button onclick="clearProcessTypeFilters()" class="text-[11px] font-bold text-slate-500 hover:text-slate-700">Tümünü Kaldır</button>
+                    </div>
+                </div>
+                <div id="process-type-filter-container" class="flex flex-wrap gap-2">
+                    <!-- Process type checkboxes will be injected -->
+                </div>
+                <p class="text-[11px] text-slate-500 mt-2">Firma adı + belge no + süreç tipi seçimi ile hızlı filtreleme yapabilirsiniz.</p>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-bold text-amber-800 uppercase tracking-wide">
+                            <i class="fa-solid fa-star mr-1"></i> Favori Projeler
+                        </p>
+                    </div>
+                    <div id="favorite-projects-container" class="flex flex-wrap gap-2">
+                        <!-- Favorite project quick buttons -->
+                    </div>
+                </div>
+
+                <div class="bg-slate-100 border border-slate-200 rounded-xl p-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            <i class="fa-solid fa-box-archive mr-1"></i> Arşiv Alanı
+                        </p>
+                        <button onclick="toggleArchivePanel()" id="archive-panel-toggle"
+                            class="text-[11px] font-bold text-slate-600 hover:text-slate-800">Göster/Gizle</button>
+                    </div>
+                    <div id="archive-projects-container" class="hidden flex flex-wrap gap-2">
+                        <!-- Archived project quick buttons -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Main Content Area: 2 Columns -->
-        <main class="flex-1 flex overflow-hidden">
+        <main class="flex-1 min-h-0 flex overflow-hidden">
 
             <!-- Left Panel: Timeline -->
-            <aside class="w-80 bg-white border-r border-slate-200 overflow-y-auto flex flex-col shrink-0 z-0 relative">
+            <aside class="w-80 min-h-0 bg-white border-r border-slate-200 overflow-y-auto flex flex-col shrink-0 z-0 relative">
                 <div
                     class="p-6 pb-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between sticky top-0 z-20">
                     <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase"><i
@@ -254,7 +344,7 @@
             </aside>
 
             <!-- Right Panel: Step Detail -->
-            <section class="flex-1 bg-slate-50/50 p-6 overflow-y-auto relative" id="detail-section">
+            <section class="flex-1 min-h-0 bg-slate-50/50 p-6 overflow-y-auto relative" id="detail-section">
                 <div class="max-w-4xl mx-auto h-full flex flex-col">
                     <div id="detail-content" class="glass-panel rounded-2xl p-8 flex-1 flex flex-col">
                         <!-- Dynamic Detail Content -->
@@ -309,6 +399,11 @@
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-slate-700 mb-1">Başlangıç Tarihi</label>
                     <input type="date" id="new-project-date"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Tamamlama Zamanı (Hedef)</label>
+                    <input type="date" id="new-project-completion-date"
                         class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 </div>
                 <div class="mb-4">
@@ -749,6 +844,12 @@
             customBaseSteps: null,       // Legacy: E-TUYS only
             processTemplates: {}         // NEW: per-process custom templates { "isgum": [...steps], "kullanilmis-esya": [...steps] }
         };
+        let projectFilterState = {
+            companyQuery: '',
+            docNumQuery: '',
+            selectedProcessTypes: null
+        };
+        let completionSortEnabled = false;
 
         // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
@@ -782,6 +883,34 @@
         // Utilities
         const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(val);
         const generateId = () => 'PRJ-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        const normalizeText = (text) => (text || '').toString().trim().toLocaleLowerCase('tr-TR');
+        const getTodayISO = () => new Date().toISOString().split('T')[0];
+        const formatDateTR = (dateStr) => {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            if (Number.isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('tr-TR');
+        };
+        const daysDiffFromToday = (dateStr) => {
+            if (!dateStr) return null;
+            const d = new Date(dateStr);
+            if (Number.isNaN(d.getTime())) return null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            d.setHours(0, 0, 0, 0);
+            return Math.round((today.getTime() - d.getTime()) / 86400000);
+        };
+        const getStatusTagClasses = (status) => {
+            if (status === 'Acil') return 'bg-red-100 text-red-700 border-red-200';
+            if (status === 'Müşteriden Evrak Bekleniyor') return 'bg-amber-100 text-amber-800 border-amber-200';
+            if (status === 'Tamamlandı') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            return 'bg-slate-100 text-slate-700 border-slate-200';
+        };
+        const touchActiveProject = () => {
+            const p = getActiveProject();
+            if (!p) return;
+            p.lastUpdatedAt = getTodayISO();
+        };
 
         function showToast(message, type = 'error') {
             const toast = document.getElementById('toast-container');
@@ -826,7 +955,10 @@
             }
         }
 
-        function saveToLocalStorage() {
+        function saveToLocalStorage(options = {}) {
+            const { touchActive = true } = options;
+            if (touchActive) touchActiveProject();
+
             // Save data to Firebase
             fbDB.ref('MajeTakipData').set({
                 projects: projects,
@@ -858,6 +990,12 @@
                         // Migration: assign processType to existing projects
                         if (!p.processType) p.processType = 'etuys';
                         if (!p.companyInfo) p.companyInfo = { company: "", docId: "", docNum: "", appDate: "", arrivalDate: "", person: "", leasingName: "", leasingOfficial: "" };
+                        if (!p.createdAt) p.createdAt = p.startDate || new Date().toISOString().split('T')[0];
+                        if (!p.lastUpdatedAt) p.lastUpdatedAt = p.createdAt || p.startDate || getTodayISO();
+                        if (!p.completionDeadline) p.completionDeadline = '';
+                        if (!p.statusTag) p.statusTag = 'Bekliyor';
+                        if (p.isFavorite === undefined) p.isFavorite = false;
+                        if (p.archived === undefined) p.archived = false;
 
                         // Firebase sometimes converts arrays to objects. Convert them back.
                         if (!p.steps) p.steps = getActiveBaseSteps(p.processType);
@@ -887,6 +1025,9 @@
                             if (!s.documents) s.documents = [];
                             else if (!Array.isArray(s.documents)) s.documents = Object.values(s.documents);
                             s.documents = s.documents.filter(d => d !== null && typeof d === 'object');
+                            s.documents.forEach(d => {
+                                if (d.dueDate === undefined) d.dueDate = '';
+                            });
 
                             if (!s.meetingNotes) s.meetingNotes = [];
                             else if (!Array.isArray(s.meetingNotes)) s.meetingNotes = Object.values(s.meetingNotes);
@@ -901,6 +1042,12 @@
                         processType: "etuys",
                         name: "Yeşil ve Dijital Dönüşüm - Modernizasyon (Demo)",
                         startDate: "2026-02-01",
+                        createdAt: "2026-02-01",
+                        lastUpdatedAt: "2026-02-01",
+                        completionDeadline: "2026-12-31",
+                        statusTag: "Bekliyor",
+                        isFavorite: false,
+                        archived: false,
                         totalInvestment: 50000000,
                         machineCount: 15,
                         companyInfo: {
@@ -961,11 +1108,319 @@
         }
 
         // Project Management UI
+        function getAllProcessTypeOptions() {
+            const options = {};
+
+            Object.entries(PROCESS_TEMPLATES).forEach(([key, template]) => {
+                options[key] = template.name || key;
+            });
+
+            if (systemSettings && systemSettings.processTemplates) {
+                Object.entries(systemSettings.processTemplates).forEach(([key, templateObj]) => {
+                    if (!options[key]) {
+                        options[key] = (templateObj && templateObj.name) ? templateObj.name : key;
+                    }
+                });
+            }
+
+            return options;
+        }
+
+        function ensureProjectFilterDefaults() {
+            const processTypeOptions = getAllProcessTypeOptions();
+            const allKeys = Object.keys(processTypeOptions);
+
+            if (!Array.isArray(projectFilterState.selectedProcessTypes)) {
+                projectFilterState.selectedProcessTypes = allKeys;
+            } else {
+                projectFilterState.selectedProcessTypes = projectFilterState.selectedProcessTypes.filter(k => allKeys.includes(k));
+            }
+        }
+
+        function projectMatchesFilters(project) {
+            const company = normalizeText(project.companyInfo && project.companyInfo.company ? project.companyInfo.company : '');
+            const docNum = normalizeText(project.companyInfo && project.companyInfo.docNum ? project.companyInfo.docNum : '');
+            const processTypeOk = projectFilterState.selectedProcessTypes.includes(project.processType || 'etuys');
+            const companyQuery = normalizeText(projectFilterState.companyQuery);
+            const docNumQuery = normalizeText(projectFilterState.docNumQuery);
+
+            const companyOk = !companyQuery || company.includes(companyQuery);
+            const docNumOk = !docNumQuery || docNum.includes(docNumQuery);
+
+            return processTypeOk && companyOk && docNumOk;
+        }
+
+        function renderProcessTypeFilters() {
+            ensureProjectFilterDefaults();
+            const container = document.getElementById('process-type-filter-container');
+            if (!container) return;
+
+            const options = getAllProcessTypeOptions();
+            const keys = Object.keys(options);
+
+            container.innerHTML = keys.map(key => {
+                const checked = projectFilterState.selectedProcessTypes.includes(key) ? 'checked' : '';
+                const safeLabel = escapeHTML(options[key]);
+                return `
+                    <label class="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors">
+                        <input type="checkbox" value="${key}" ${checked} onchange="toggleProcessTypeFilter(this.value, this.checked)" class="w-3.5 h-3.5 text-brand-600 border-slate-300 rounded focus:ring-brand-500">
+                        <span>${safeLabel}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function initializeProjectFilters() {
+            const companyInput = document.getElementById('project-search-company');
+            const docNumInput = document.getElementById('project-search-docnum');
+
+            if (companyInput) companyInput.value = projectFilterState.companyQuery || '';
+            if (docNumInput) docNumInput.value = projectFilterState.docNumQuery || '';
+
+            renderProcessTypeFilters();
+        }
+
+        function applyProjectSearchFilters() {
+            const companyInput = document.getElementById('project-search-company');
+            const docNumInput = document.getElementById('project-search-docnum');
+
+            projectFilterState.companyQuery = (companyInput && companyInput.value ? companyInput.value : '').trim();
+            projectFilterState.docNumQuery = (docNumInput && docNumInput.value ? docNumInput.value : '').trim();
+
+            const currentActiveVisible = projects[activeProjectId] && projectMatchesFilters(projects[activeProjectId]);
+            if (!currentActiveVisible) {
+                const firstVisible = Object.values(projects).find(projectMatchesFilters);
+                if (firstVisible) activeProjectId = firstVisible.id;
+            }
+
+            updateUI();
+        }
+
+        function toggleProcessTypeFilter(processType, isChecked) {
+            const selected = new Set(projectFilterState.selectedProcessTypes || []);
+
+            if (isChecked) selected.add(processType);
+            else selected.delete(processType);
+
+            projectFilterState.selectedProcessTypes = Array.from(selected);
+            applyProjectSearchFilters();
+        }
+
+        function selectAllProcessTypeFilters() {
+            projectFilterState.selectedProcessTypes = Object.keys(getAllProcessTypeOptions());
+            updateUI();
+        }
+
+        function clearProcessTypeFilters() {
+            projectFilterState.selectedProcessTypes = [];
+            updateUI();
+        }
+
+        function clearProjectSearchFilters() {
+            const confirmed = confirm("Arama ve filtreleri temizlemek istediğinize emin misiniz?");
+            if (!confirmed) {
+                return;
+            }
+
+            projectFilterState.companyQuery = '';
+            projectFilterState.docNumQuery = '';
+            projectFilterState.selectedProcessTypes = Object.keys(getAllProcessTypeOptions());
+            updateUI();
+        }
+
+        function toggleAdvancedSearch() {
+            const panel = document.getElementById('advanced-search-panel');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+        }
+
+        function toggleArchivePanel() {
+            const panel = document.getElementById('archive-projects-container');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+        }
+
+        function toggleCompletionSortMode() {
+            completionSortEnabled = !completionSortEnabled;
+            updateUI();
+            showToast(completionSortEnabled ? 'Projeler tamamlama zamanına gore siralandi.' : 'Varsayilan siralama aktif.', 'info');
+        }
+
+        function updateActiveProjectStatus(statusValue) {
+            const p = getActiveProject();
+            if (!p) return;
+            p.statusTag = statusValue || 'Bekliyor';
+            saveToLocalStorage();
+            showToast('Proje durum etiketi guncellendi.', 'success');
+        }
+
+        function toggleFavoriteProject() {
+            const p = getActiveProject();
+            if (!p) return;
+            p.isFavorite = !p.isFavorite;
+            saveToLocalStorage();
+            showToast(p.isFavorite ? 'Proje favorilere sabitlendi.' : 'Proje favorilerden cikarildi.', 'info');
+        }
+
+        function toggleArchiveProject() {
+            const p = getActiveProject();
+            if (!p) return;
+
+            const willArchive = !p.archived;
+            const confirmMsg = willArchive
+                ? 'Bu projeyi arsive almak istediginize emin misiniz?'
+                : 'Bu projeyi arsivden geri cikarmak istediginize emin misiniz?';
+
+            if (!confirm(confirmMsg)) return;
+
+            p.archived = willArchive;
+
+            if (willArchive) {
+                const nextVisible = Object.values(projects).find(x => !x.archived && projectMatchesFilters(x) && x.id !== p.id);
+                activeProjectId = nextVisible ? nextVisible.id : null;
+            }
+
+            saveToLocalStorage();
+            showToast(willArchive ? 'Proje arsive alindi.' : 'Proje arsivden cikarildi.', 'success');
+        }
+
+        function openProjectFromQuickList(projectId) {
+            if (!projects[projectId]) return;
+            if (projects[projectId].archived) {
+                showToast('Bu proje arsivde. Acmak icin once arsivden cikarin.', 'info');
+                return;
+            }
+
+            activeProjectId = projectId;
+            saveToLocalStorage({ touchActive: false });
+            updateUI();
+        }
+
+        function unarchiveProjectById(projectId) {
+            if (!projects[projectId]) return;
+            projects[projectId].archived = false;
+            activeProjectId = projectId;
+            saveToLocalStorage();
+            showToast('Proje arsivden cikarildi.', 'success');
+        }
+
+        function renderQuickProjectPanels() {
+            const favoriteContainer = document.getElementById('favorite-projects-container');
+            const archiveContainer = document.getElementById('archive-projects-container');
+
+            if (favoriteContainer) {
+                const favorites = Object.values(projects).filter(p => p.isFavorite && !p.archived);
+                if (favorites.length === 0) {
+                    favoriteContainer.innerHTML = '<span class="text-[11px] text-amber-700/80">Favori proje yok.</span>';
+                } else {
+                    favoriteContainer.innerHTML = favorites.map(p => `
+                        <button onclick="openProjectFromQuickList('${p.id}')" class="px-2.5 py-1.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm">
+                            <i class="fa-solid fa-star mr-1"></i>${escapeHTML((p.companyInfo && p.companyInfo.company) ? p.companyInfo.company : p.name)}
+                        </button>
+                    `).join('');
+                }
+            }
+
+            if (archiveContainer) {
+                const archivedProjects = Object.values(projects).filter(p => p.archived);
+                if (archivedProjects.length === 0) {
+                    archiveContainer.innerHTML = '<span class="text-[11px] text-slate-500">Arsiv bos.</span>';
+                } else {
+                    archiveContainer.innerHTML = archivedProjects.map(p => `
+                        <button onclick="unarchiveProjectById('${p.id}')" class="px-2.5 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors shadow-sm">
+                            <i class="fa-solid fa-box-open mr-1"></i>${escapeHTML((p.companyInfo && p.companyInfo.company) ? p.companyInfo.company : p.name)}
+                        </button>
+                    `).join('');
+                }
+            }
+        }
+
+        function renderActiveProjectControls() {
+            const p = getActiveProject();
+            const favoriteBtn = document.getElementById('favorite-toggle-btn');
+            const archiveBtn = document.getElementById('archive-toggle-btn');
+            const statusSelect = document.getElementById('project-status-selector');
+            const sortBtn = document.getElementById('completion-sort-btn');
+
+            if (sortBtn) {
+                sortBtn.classList.toggle('bg-indigo-100', completionSortEnabled);
+                sortBtn.classList.toggle('text-indigo-700', completionSortEnabled);
+                sortBtn.classList.toggle('border-indigo-200', completionSortEnabled);
+            }
+
+            if (!p) {
+                if (favoriteBtn) {
+                    favoriteBtn.disabled = true;
+                    favoriteBtn.innerHTML = '<i class="fa-regular fa-star mr-1"></i> Yildizla';
+                }
+                if (archiveBtn) {
+                    archiveBtn.disabled = true;
+                    archiveBtn.innerHTML = '<i class="fa-solid fa-box-archive mr-1"></i> Arsive Al';
+                }
+                if (statusSelect) statusSelect.value = 'Bekliyor';
+                return;
+            }
+
+            if (favoriteBtn) {
+                favoriteBtn.disabled = false;
+                favoriteBtn.innerHTML = p.isFavorite
+                    ? '<i class="fa-solid fa-star mr-1"></i> Favoride'
+                    : '<i class="fa-regular fa-star mr-1"></i> Yildizla';
+            }
+
+            if (archiveBtn) {
+                archiveBtn.disabled = false;
+                archiveBtn.innerHTML = p.archived
+                    ? '<i class="fa-solid fa-box-open mr-1"></i> Arsivden Cikar'
+                    : '<i class="fa-solid fa-box-archive mr-1"></i> Arsive Al';
+            }
+
+            if (statusSelect) statusSelect.value = p.statusTag || 'Bekliyor';
+        }
+
         function renderProjectSelector() {
             const selector = document.getElementById('project-selector');
             selector.innerHTML = '';
+            initializeProjectFilters();
 
-            Object.values(projects).forEach(p => {
+            let filteredProjects = Object.values(projects)
+                .filter(projectMatchesFilters)
+                .filter(p => !p.archived);
+
+            filteredProjects.sort((a, b) => {
+                if ((b.isFavorite ? 1 : 0) !== (a.isFavorite ? 1 : 0)) {
+                    return (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+                }
+
+                if (completionSortEnabled) {
+                    const aTime = a.completionDeadline ? new Date(a.completionDeadline).getTime() : Number.MAX_SAFE_INTEGER;
+                    const bTime = b.completionDeadline ? new Date(b.completionDeadline).getTime() : Number.MAX_SAFE_INTEGER;
+                    return aTime - bTime;
+                }
+
+                const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return bCreated - aCreated;
+            });
+
+            if (filteredProjects.length === 0) {
+                activeProjectId = null;
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Filtreye uygun proje bulunamadı';
+                opt.disabled = true;
+                opt.selected = true;
+                selector.appendChild(opt);
+                renderQuickProjectPanels();
+                renderActiveProjectControls();
+                return;
+            }
+
+            if (!projects[activeProjectId] || !filteredProjects.some(p => p.id === activeProjectId)) {
+                activeProjectId = filteredProjects[0].id;
+            }
+
+            filteredProjects.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
 
@@ -977,16 +1432,25 @@
                     ptName = systemSettings.processTemplates[p.processType].name || p.processType;
                 }
 
-                opt.textContent = `[${ptName}] ${p.name} (${p.id})`;
+                const companyName = (p.companyInfo && p.companyInfo.company) ? p.companyInfo.company : 'Firma yok';
+                const docNum = (p.companyInfo && p.companyInfo.docNum) ? p.companyInfo.docNum : '-';
+                const createdAt = p.createdAt || p.startDate || '-';
+                const deadline = p.completionDeadline ? formatDateTR(p.completionDeadline) : '-';
+                const star = p.isFavorite ? '★ ' : '';
+
+                opt.textContent = `${star}[${ptName}] ${companyName} | ${p.name} | Belge No: ${docNum} | Tamamlama: ${deadline} | Oluşturma: ${formatDateTR(createdAt)} (${p.id})`;
                 if (p.id === activeProjectId) opt.selected = true;
                 selector.appendChild(opt);
             });
+
+            renderQuickProjectPanels();
+            renderActiveProjectControls();
         }
 
         function switchProject(projectId) {
             if (projects[projectId]) {
                 activeProjectId = projectId;
-                saveToLocalStorage();
+                saveToLocalStorage({ touchActive: false });
                 updateUI();
                 showToast("Proje değiştirildi: " + projects[projectId].name, "success");
             }
@@ -1021,6 +1485,7 @@
 
             document.getElementById('new-project-name').value = '';
             document.getElementById('new-project-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('new-project-completion-date').value = '';
             document.getElementById('new-project-investment').value = '';
             document.getElementById('new-project-machine-count').value = '';
             document.getElementById('new-project-company').value = '';
@@ -1112,6 +1577,14 @@
                 ]
             };
 
+            // Yeni eklenen süreç tipini filtrede otomatik görünür yap
+            if (!Array.isArray(projectFilterState.selectedProcessTypes)) {
+                projectFilterState.selectedProcessTypes = [];
+            }
+            if (!projectFilterState.selectedProcessTypes.includes(key)) {
+                projectFilterState.selectedProcessTypes.push(key);
+            }
+
             saveToLocalStorage();
             closeNewProcessTypeModal();
 
@@ -1174,6 +1647,7 @@
             const processType = document.getElementById('new-project-process-type').value;
             const name = document.getElementById('new-project-name').value;
             const date = document.getElementById('new-project-date').value;
+            const completionDate = document.getElementById('new-project-completion-date').value;
             const investment = document.getElementById('new-project-investment').value;
             const currency = document.getElementById('new-project-currency').value;
             const machines = document.getElementById('new-project-machine-count').value;
@@ -1212,6 +1686,12 @@
                 processType: processType,
                 name: name,
                 startDate: date,
+                createdAt: new Date().toISOString().split('T')[0],
+                lastUpdatedAt: getTodayISO(),
+                completionDeadline: completionDate || '',
+                statusTag: 'Bekliyor',
+                isFavorite: false,
+                archived: false,
                 totalInvestment: parseFloat(investment),
                 currency: currency || 'TRY',
                 machineCount: parseInt(machines, 10),
@@ -1219,6 +1699,14 @@
                 steps: getActiveBaseSteps(processType),
                 selectedStepId: 1
             };
+
+            // Kullanıcı yeni bir süreç tipiyle proje açtıysa, filtre onu gizlemesin.
+            if (!Array.isArray(projectFilterState.selectedProcessTypes)) {
+                projectFilterState.selectedProcessTypes = [];
+            }
+            if (!projectFilterState.selectedProcessTypes.includes(processType)) {
+                projectFilterState.selectedProcessTypes.push(processType);
+            }
 
             activeProjectId = newId;
             saveToLocalStorage();
@@ -1261,11 +1749,28 @@
                     pt = PROCESS_TEMPLATES['etuys']; // safe fallback
                 }
 
+                const lastUpdateDays = daysDiffFromToday(p.lastUpdatedAt || p.createdAt || p.startDate);
+                let lastUpdateClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                if (lastUpdateDays !== null && lastUpdateDays > 7) {
+                    lastUpdateClass = 'bg-red-100 text-red-700 border-red-200';
+                } else if (lastUpdateDays !== null && lastUpdateDays > 3) {
+                    lastUpdateClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                }
+
+                const statusClasses = getStatusTagClasses(p.statusTag || 'Bekliyor');
+                const deadlineText = p.completionDeadline ? formatDateTR(p.completionDeadline) : '-';
+
                 el('project-id-badge').innerHTML = `
                     <span class="inline-flex items-center bg-${pt.color}-100 text-${pt.color}-700 px-2 py-0.5 rounded-md text-[10px] font-bold mr-2 border border-${pt.color}-200 uppercase">
                         <i class="${pt.icon} mr-1"></i> ${pt.name}
                     </span>
-                    ${p.id} • Proje Başlangıç: ${p.startDate}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold mr-1 border ${statusClasses}">
+                        ${escapeHTML(p.statusTag || 'Bekliyor')}
+                    </span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${lastUpdateClass}">
+                        Son Guncelleme: ${formatDateTR(p.lastUpdatedAt || p.createdAt || p.startDate)}
+                    </span>
+                    <span class="ml-2">${p.id} • Proje Başlangıç: ${p.startDate} • Tamamlama: ${deadlineText} • Oluşturulma: ${formatDateTR(p.createdAt || p.startDate)}</span>
                 `;
             }
             if (el('total-investment')) {
@@ -1508,6 +2013,12 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Proje Tamamlama Zamanı (Hedef)</label>
+                        <input type="date" id="ci-completion-date" value="${p.completionDeadline || ''}"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
                     <div class="border-t border-slate-200 pt-4 mt-2">
                         <h4 class="text-xs font-bold text-emerald-600 mb-3 uppercase tracking-wider"><i class="fa-solid fa-handshake mr-1"></i> Leasing Bilgileri</h4>
                         <div class="grid grid-cols-2 gap-3">
@@ -1622,6 +2133,8 @@
             const p = getActiveProject();
             if (!p) return;
 
+            p.completionDeadline = document.getElementById('ci-completion-date').value || '';
+
             p.companyInfo = {
                 company: (document.getElementById('ci-company').value || '').trim(),
                 docId: (document.getElementById('ci-doc-id').value || '').trim(),
@@ -1691,7 +2204,8 @@
                             name: file.name,
                             ext: fileExt || "BİLİNMİYOR",
                             note: "Sürükle bırak ile eklendi",
-                            dateAdded: new Date().toISOString().split('T')[0]
+                            dateAdded: new Date().toISOString().split('T')[0],
+                            dueDate: ''
                         });
                     });
                     saveToLocalStorage();
@@ -1705,10 +2219,12 @@
             const docNameInput = document.getElementById('new-doc-name');
             const docExtInput = document.getElementById('new-doc-ext');
             const docNoteInput = document.getElementById('new-doc-note');
+            const docDueDateInput = document.getElementById('new-doc-due-date');
 
             let docName = docNameInput.value.trim();
             const docExt = docExtInput.value;
             const docNote = docNoteInput.value.trim();
+            const docDueDate = docDueDateInput ? docDueDateInput.value : '';
 
             if (!docName) {
                 showToast("Lütfen evrak/belge adını giriniz.", "error");
@@ -1729,7 +2245,8 @@
                     name: docName,
                     ext: docExt || "DOC",
                     note: docNote || "Açıklama yok",
-                    dateAdded: new Date().toISOString().split('T')[0]
+                    dateAdded: new Date().toISOString().split('T')[0],
+                    dueDate: docDueDate || ''
                 });
                 saveToLocalStorage();
                 renderDetailPanel(); // Re-render to show new doc
@@ -2004,7 +2521,10 @@
                                     <option value="DİĞER">DİĞER</option>
                                 </select>
                             </div>
-                            <input type="text" id="new-doc-note" placeholder="Belge hakkında açıklama veya durum durumu (İsteğe bağlı)" class="w-full border border-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input type="text" id="new-doc-note" placeholder="Belge hakkında açıklama veya durum durumu (İsteğe bağlı)" class="w-full border border-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                <input type="date" id="new-doc-due-date" class="w-full border border-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500" title="Evrak son tarih">
+                            </div>
                         </div>
                         <button onclick="addDocument(${step.id})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 px-3 py-2 rounded-md text-xs font-bold transition-colors whitespace-nowrap h-full flex flex-col justify-center items-center h-[72px]">
                             <i class="fa-solid fa-plus mb-1 text-sm"></i> Ekle
@@ -2019,6 +2539,7 @@
                                     <th class="px-4 py-2 w-1/3 border-r border-slate-200">Belge Adı</th>
                                     <th class="px-3 py-2 w-16 border-r border-slate-200 text-center">Format</th>
                                     <th class="px-4 py-2 border-r border-slate-200">Açıklama / Durum</th>
+                                    <th class="px-4 py-2 w-28 border-r border-slate-200 text-center">Son Tarih</th>
                                     <th class="px-4 py-2 w-24 border-r border-slate-200 text-center">Tarih</th>
                                     ${!isReadOnly ? '<th class="px-2 py-2 w-10 text-center"></th>' : ''}
                                 </tr>
@@ -2031,6 +2552,11 @@
                 else if (doc.ext === 'XLSX' || doc.ext === 'XLS') iconHtml = '<i class="fa-regular fa-file-excel text-emerald-500 mr-2"></i>';
                 else if (doc.ext === 'XML') iconHtml = '<i class="fa-regular fa-file-code text-orange-400 mr-2"></i>';
                 else if (doc.ext === 'ZIP') iconHtml = '<i class="fa-regular fa-file-zipper text-purple-500 mr-2"></i>';
+                const dueDiff = daysDiffFromToday(doc.dueDate);
+                let dueClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                if (dueDiff !== null && dueDiff > 0) dueClass = 'bg-red-100 text-red-700 border-red-200';
+                else if (dueDiff !== null && dueDiff >= -3) dueClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                else if (dueDiff !== null) dueClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
 
                 return `
                                     <tr class="hover:bg-slate-50 transition-colors">
@@ -2041,6 +2567,9 @@
                                             <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">${doc.ext || 'DİĞER'}</span>
                                         </td>
                                         <td class="px-4 py-2.5 text-xs text-slate-500 border-r border-slate-100">${doc.note}</td>
+                                        <td class="px-4 py-2.5 text-xs text-center border-r border-slate-100">
+                                            <span class="px-2 py-0.5 rounded border text-[10px] font-bold ${dueClass}">${doc.dueDate ? formatDateTR(doc.dueDate) : '-'}</span>
+                                        </td>
                                         <td class="px-4 py-2.5 text-xs text-center border-r border-slate-100">${doc.dateAdded}</td>
                                         ${!isReadOnly ? `
                                         <td class="px-2 py-2.5 text-center">
@@ -2051,7 +2580,7 @@
                                         ` : ''}
                                     </tr>
                                 `}).join('') : `
-                                    <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400 text-xs italic bg-slate-50/50">Bu adım için tanımlanmış evrak kaydı bulunmamaktadır.</td></tr>
+                                    <tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 text-xs italic bg-slate-50/50">Bu adım için tanımlanmış evrak kaydı bulunmamaktadır.</td></tr>
                                 `}
                             </tbody>
                         </table>
@@ -2079,6 +2608,12 @@
         function updateUI() {
             try {
                 renderProjectSelector();
+                if (!projects[activeProjectId]) {
+                    loadDashboardInfo();
+                    document.getElementById('timeline-container').innerHTML = '';
+                    document.getElementById('detail-content').innerHTML = '<div class="flex items-center justify-center p-12 text-slate-400 font-medium">Filtreye uygun proje bulunamadı.</div>';
+                    return;
+                }
                 loadDashboardInfo();
                 renderTimeline();
                 renderDetailPanel();
