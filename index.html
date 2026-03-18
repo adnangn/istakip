@@ -1,0 +1,2587 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maje Takip | Teşvik ve Yatırım Süreç Yönetimi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6', // Teal
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            900: '#134e4a',
+                        },
+                        enterprise: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            500: '#64748b',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE CHAT/DB/AUTH SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .step-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .step-card:hover:not(.locked) {
+            transform: translateX(4px);
+            background-color: #f8fafc;
+        }
+
+        .timeline-connector {
+            position: absolute;
+            top: 2.5rem;
+            bottom: -0.5rem;
+            left: 23px;
+            /* Center of the icon */
+            width: 2px;
+            background-color: #e2e8f0;
+            z-index: 0;
+            transform: translateX(-50%);
+        }
+
+        .step-card:last-child .timeline-connector {
+            display: none;
+        }
+
+        .timeline-connector.completed {
+            background-color: #14b8a6;
+            /* Brand teal */
+        }
+
+        #toast-container {
+            transition: transform 0.3s ease-in-out, opacity 0.3s;
+            transform: translate(-50%, 100%);
+            opacity: 0;
+        }
+
+        #toast-container.show {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Standardized scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col text-slate-800 overflow-hidden relative">
+
+    <!-- LOGIN SCREEN OVERLAY -->
+    <div id="login-overlay"
+        class="absolute inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <div
+                class="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-brand-100 shadow-sm">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2 tracking-tight">MAJE TAKİP</h2>
+            <p class="text-sm text-slate-500 mb-6 font-medium">Sisteme erişmek için giriş yapmalısınız.</p>
+
+            <form onsubmit="handleLogin(event)" class="text-left space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">E-posta Adresi</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-envelope absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="email" id="login-email" required placeholder="admin@maje.com.tr"
+                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Şifre</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="password" id="login-password" required placeholder="••••••••"
+                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all">
+                    </div>
+                </div>
+                <button type="submit" id="login-btn"
+                    class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all flex justify-center items-center mt-2">
+                    Giriş Yap <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                </button>
+            </form>
+
+            <p class="text-[10px] text-slate-400 mt-6 mt-4">Yetkisiz erişim yasaktır. Destek için sistem yöneticisine
+                başvurun.</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="main-app"
+        class="h-full flex flex-col w-full opacity-0 pointer-events-none transition-opacity duration-500">
+
+        <!-- Header Gradient Top Bar -->
+        <div class="h-1 bg-gradient-to-r from-brand-500 to-blue-600 w-full shrink-0"></div>
+
+        <!-- Application Header -->
+        <header
+            class="bg-white px-6 py-4 shadow-sm border-b border-slate-200 flex justify-between items-center z-10 shrink-0">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-10 w-10 bg-brand-50 text-brand-600 rounded-lg flex items-center justify-center text-xl shadow-sm border border-brand-100">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-enterprise-900 tracking-tight">MAJE TAKİP</h1>
+                    <p class="text-xs font-medium text-slate-500" id="project-id-badge">Loading...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-8">
+                <div class="flex flex-col">
+                    <h1 class="text-lg font-bold text-slate-800 leading-tight">Maje Takip <span
+                            class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full ml-1 border border-slate-200">v1.3</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-500 font-medium">Kurumsal Yatırım Süreç Yönetimi Paneli</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-slate-500 font-medium mb-1">Proje İlerlemesi (<span
+                            id="progress-percent">0</span>%)</p>
+                    <p class="text-sm font-bold text-brand-600"><span id="total-investment">0 ₺</span></p>
+                    <p class="text-lg font-bold text-brand-600"><span id="machine-count">0</span> Makine</p>
+                </div>
+                <!-- Progress Bar Circular / Linear -->
+                <div class="w-32">
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden w-full border border-slate-200">
+                        <div id="header-progress-bar"
+                            class="h-full bg-brand-500 rounded-full w-0 transition-all duration-1000"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Header and Project Selector Row -->
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex justify-between items-center z-10 shrink-0">
+            <div class="flex items-center gap-4">
+                <label class="text-sm font-bold text-slate-700">Aktif Proje:</label>
+                <select id="project-selector" onchange="switchProject(this.value)"
+                    class="bg-white border text-sm font-semibold border-slate-300 text-slate-700 rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-80 p-2 shadow-sm transition-all focus:outline-none">
+                    <!-- Options will be injected via JS -->
+                </select>
+                <button onclick="openCompanyModal()"
+                    class="ml-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors shadow-sm">
+                    <i class="fa-solid fa-address-card mr-1"></i> Firma / Belge Kimliği
+                </button>
+                <button onclick="openNewProjectModal()"
+                    class="ml-2 px-3 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-100 transition-colors shadow-sm">
+                    <i class="fa-solid fa-plus text-brand-600 mr-1"></i> Yeni Proje
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openAdminPanel()"
+                    class="px-3 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition-colors">
+                    <i class="fa-solid fa-gears mr-1"></i> Ayarlar & Yedekleme
+                </button>
+                <button onclick="deleteActiveProject()"
+                    class="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Aktif Projeyi Sil
+                </button>
+                <button onclick="handleLogout()"
+                    class="px-3 py-2 bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors ml-2">
+                    <i class="fa-solid fa-arrow-right-from-bracket mr-1 text-slate-500"></i> Çıkış Yap
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area: 2 Columns -->
+        <main class="flex-1 flex overflow-hidden">
+
+            <!-- Left Panel: Timeline -->
+            <aside class="w-80 bg-white border-r border-slate-200 overflow-y-auto flex flex-col shrink-0 z-0 relative">
+                <div
+                    class="p-6 pb-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between sticky top-0 z-20">
+                    <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase"><i
+                            class="fa-solid fa-timeline mr-2 text-slate-400"></i> İşlem Adımları</h2>
+                </div>
+                <div class="p-4 relative z-10" id="timeline-container">
+                    <!-- Steps will be injected here via JS -->
+                </div>
+            </aside>
+
+            <!-- Right Panel: Step Detail -->
+            <section class="flex-1 bg-slate-50/50 p-6 overflow-y-auto relative" id="detail-section">
+                <div class="max-w-4xl mx-auto h-full flex flex-col">
+                    <div id="detail-content" class="glass-panel rounded-2xl p-8 flex-1 flex flex-col">
+                        <!-- Dynamic Detail Content -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div> <!-- END MAIN APP CONTAINER -->
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"
+        class="fixed bottom-8 left-1/2 flex items-center gap-3 px-6 py-4 rounded-xl shadow-lg font-medium text-sm text-white z-50">
+        <i id="toast-icon" class="fa-solid fa-circle-exclamation text-xl"></i>
+        <div id="toast-message">Hata mesajı burada görünecek.</div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div id="new-project-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300"
+            id="modal-content-box">
+            <div class="bg-brand-500 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-folder-plus mr-2"></i> Yeni Proje Ekle</h3>
+                <button onclick="closeNewProjectModal()" class="text-white/80 hover:text-white transition-colors"><i
+                        class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1"><i
+                            class="fa-solid fa-layer-group mr-1 text-brand-500"></i> Süreç Tipi</label>
+                    <div class="flex gap-2 items-center w-full">
+                        <select id="new-project-process-type" onchange="toggleProcessTypeDeleteBtn()"
+                            class="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                        </select>
+                        <button type="button" id="delete-process-type-btn" onclick="deleteSelectedProcessType()"
+                            class="hidden bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-2.5 rounded-lg shrink-0 transition-colors shadow-sm font-bold text-xs items-center h-full"
+                            title="Seçili Özel Süreci Sil">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <button type="button" onclick="openNewProcessTypeModal()"
+                            class="bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 px-3 py-2.5 rounded-lg shrink-0 transition-colors shadow-sm font-bold text-xs flex items-center h-full">
+                            <i class="fa-solid fa-plus mr-1"></i> Yeni Ekle
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Proje Adı</label>
+                    <input type="text" id="new-project-name" placeholder="Örn: Güneş Enerjisi Yatırımı"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Başlangıç Tarihi</label>
+                    <input type="date" id="new-project-date"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Toplam Yatırım Tutarı & Kuru</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="new-project-investment" placeholder="50000000"
+                            class="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <select id="new-project-currency"
+                            class="w-32 border border-slate-300 rounded-lg px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 font-semibold text-slate-700">
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="CHF">CHF (Fr)</option>
+                            <option value="JPY">JPY (¥)</option>
+                            <option value="CNY">CNY (¥)</option>
+                            <option value="RUB">RUB (₽)</option>
+                            <option value="AED">AED (د.إ)</option>
+                            <option value="CAD">CAD ($)</option>
+                            <option value="AUD">AUD ($)</option>
+                            <option value="DKK">DKK (kr)</option>
+                            <option value="SEK">SEK (kr)</option>
+                            <option value="NOK">NOK (kr)</option>
+                            <option value="KWD">KWD (KD)</option>
+                            <option value="SAR">SAR (SR)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">İthal ve Yerli Makine Sayısı</label>
+                    <input type="number" id="new-project-machine-count" placeholder="Örn: 25"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <!-- NEW CUSTOMS & MACHINERY FIELDS -->
+                <div class="my-4 border-t border-slate-200 pt-4">
+                    <h4 class="text-xs font-bold text-blue-600 mb-3 uppercase tracking-wider"><i
+                            class="fa-solid fa-truck-fast mr-1"></i> İthalat / Teçhizat Detayları (Opsiyonel)</h4>
+
+                    <div class="mb-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Teçhizat / Makine Adı</label>
+                        <input type="text" id="new-project-equip-name" placeholder="Örn: CNC Dik İşlem Merkezi"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">GTİP Numarası</label>
+                            <input type="text" id="new-project-gtip" placeholder="Örn: 8457.10.90.00.00"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Miktar ve Birim</label>
+                            <input type="text" id="new-project-quantity" placeholder="Örn: 2 Adet / 1 Hat"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Menşei Ülke</label>
+                            <input type="text" id="new-project-origin" placeholder="Örn: Almanya, Japonya"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Sevk Bölgesi / Liman</label>
+                            <input type="text" id="new-project-shipping" placeholder="Örn: Hamburg Limanı"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Teslim Şekli (INCOTERMS)</label>
+                            <select id="new-project-incoterms"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                                <option value="">Seçiniz...</option>
+                                <option value="EXW">EXW (Ex Works)</option>
+                                <option value="FCA">FCA (Free Carrier)</option>
+                                <option value="FAS">FAS (Free Alongside Ship)</option>
+                                <option value="FOB">FOB (Free On Board)</option>
+                                <option value="CFR">CFR (Cost and Freight)</option>
+                                <option value="CIF">CIF (Cost, Insurance, Freight)</option>
+                                <option value="CPT">CPT (Carriage Paid To)</option>
+                                <option value="CIP">CIP (Carriage and Insurance Paid)</option>
+                                <option value="DAP">DAP (Delivered at Place)</option>
+                                <option value="DPU">DPU (Delivered at Place Unloaded)</option>
+                                <option value="DDP">DDP (Delivered Duty Paid)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Üretici Firma</label>
+                            <input type="text" id="new-project-supplier" placeholder="Örn: Firma AG"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">İthalatçı Firma</label>
+                            <input type="text" id="new-project-importer" placeholder="Örn: ABC İthalat A.Ş."
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">İhracatçı Firma</label>
+                            <input type="text" id="new-project-exporter" placeholder="Örn: XYZ Export GmbH"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW COMPANY IDENTITY FIELDS -->
+                <div class="my-4 border-t border-slate-200 pt-4">
+                    <h4 class="text-xs font-bold text-emerald-600 mb-3 uppercase tracking-wider"><i
+                            class="fa-solid fa-building mr-1"></i> Firma ve Belge Detayları</h4>
+
+                    <div class="mb-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Firma / Kurum Adı</label>
+                        <input type="text" id="new-project-company" placeholder="Örn: ABC A.Ş."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Belge ID</label>
+                            <input type="text" id="new-project-doc-id" placeholder="Belge ID"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Belge Sayısı</label>
+                            <input type="text" id="new-project-doc-num" placeholder="Belge Sayısı"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Başvuru Tarihi</label>
+                            <input type="date" id="new-project-app-date"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Geldiği Tarih</label>
+                            <input type="date" id="new-project-arrival-date"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Yetkili Kişi</label>
+                        <input type="text" id="new-project-person" placeholder="Örn: Ahmet Yılmaz"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Leasing Adı (Ops.)</label>
+                            <input type="text" id="new-project-lease-name" placeholder="Kurum Adı"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Leasing Yetkilisi</label>
+                            <input type="text" id="new-project-lease-off" placeholder="Yetkili"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-white border-t border-slate-200 flex justify-end gap-3 shrink-0">
+                <button onclick="closeNewProjectModal()"
+                    class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">İptal</button>
+                <button onclick="saveNewProject()"
+                    class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-md flex items-center transition-all">
+                    <i class="fa-solid fa-save mr-2"></i> Projeyi Oluştur
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Process Type Modal -->
+    <div id="new-process-type-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-300"
+            id="process-type-modal-content-box">
+            <div class="bg-blue-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-layer-group mr-2"></i> Yeni Süreç Tipi</h3>
+                <button onclick="closeNewProcessTypeModal()" class="text-white/80 hover:text-white transition-colors"><i
+                        class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Süreç / Şablon Adı</label>
+                    <input type="text" id="new-process-type-name" placeholder="Örn: TSE Onay Muafiyeti"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button onclick="closeNewProcessTypeModal()"
+                        class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">İptal</button>
+                    <button onclick="saveNewProcessType()"
+                        class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md flex items-center transition-all">
+                        <i class="fa-solid fa-save mr-2"></i> Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Identity Modal (Pop-up) -->
+    <div id="company-identity-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-300"
+            id="company-modal-content-box">
+            <div class="bg-emerald-700 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-building mr-2 text-emerald-300"></i> Firma ve Belge
+                    Kimliği</h3>
+                <button onclick="closeCompanyModal()" class="text-white/80 hover:text-white transition-colors"><i
+                        class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto" id="company-modal-body">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Detail Modal (Pop-up) -->
+    <div id="note-detail-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-300"
+            id="note-modal-content-box">
+            <div class="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-address-card mr-2 text-orange-400"></i> Firma /
+                    Görüşme Detayları</h3>
+                <button onclick="closeNoteModal()" class="text-white/80 hover:text-white transition-colors"><i
+                        class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto" id="note-modal-body">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="admin-panel-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300"
+            id="admin-modal-content-box">
+            <div class="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-gears mr-2 text-blue-400"></i> Proje Adım Ayarları &
+                    Yedekleme</h3>
+                <button onclick="closeAdminPanel()" class="text-white/80 hover:text-white transition-colors"><i
+                        class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- Backup / Restore Header inside Admin -->
+            <div class="px-6 py-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center shrink-0">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-800"><i
+                            class="fa-solid fa-database text-brand-600 mr-1.5"></i> Veritabanı Yedekleme İşlemleri</h4>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Tüm projelerinizi ve şablon ayarlarınızı
+                        bilgisayarınıza dosya olarak indirebilir veya geri yükleyebilirsiniz.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportDataToFile()"
+                        class="px-4 py-2 bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-md text-xs font-bold hover:bg-emerald-200 transition-colors flex items-center shadow-sm">
+                        <i class="fa-solid fa-download mr-1.5"></i> Yedeği İndir (.json)
+                    </button>
+
+                    <label
+                        class="cursor-pointer px-4 py-2 bg-amber-100 text-amber-800 border border-amber-300 rounded-md text-xs font-bold hover:bg-amber-200 transition-colors flex items-center shadow-sm relative overflow-hidden">
+                        <i class="fa-solid fa-upload mr-1.5"></i> Geri Yükle
+                        <input type="file" id="import-file-input" accept=".json" onchange="importDataFromFile(event)"
+                            class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Active Project Indicator inside Admin -->
+            <div class="px-6 py-3 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Düzenlenecek Proje:</label>
+                    <div id="admin-active-project-name"
+                        class="bg-slate-50 border border-slate-300 text-sm font-bold text-brand-700 rounded-lg p-2 shadow-sm min-w-[200px]">
+                        <!-- Project Name injected via JS -->
+                    </div>
+                </div>
+                <button onclick="addAdminStep()"
+                    class="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-xs font-bold hover:bg-blue-100 transition-colors flex items-center shadow-sm">
+                    <i class="fa-solid fa-plus-circle mr-1.5"></i> Yeni Adım Ekle
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 bg-slate-50" id="admin-modal-body">
+                <!-- Content injected via JS -->
+            </div>
+            <div class="p-4 bg-white border-t border-slate-200 flex justify-end gap-3 shrink-0">
+                <button onclick="closeAdminPanel()"
+                    class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">İptal</button>
+                <button onclick="saveAsProcessTemplate()"
+                    class="px-5 py-2.5 rounded-lg text-sm font-bold text-blue-700 bg-blue-100 border border-blue-200 hover:bg-blue-200 shadow-sm flex items-center transition-all">
+                    <i class="fa-solid fa-code-branch mr-2"></i> Şablon Olarak Kaydet
+                </button>
+                <button onclick="saveAdminSettings()"
+                    class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md flex items-center transition-all">
+                    <i class="fa-solid fa-save mr-2"></i> Adımları Projeye Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Global error handler (silent for production)
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error("Maje Takip Hata:", msg, "Satır:", lineNo);
+            return false;
+        };
+
+        // Güvenlik: XSS (Cross-Site Scripting) koruması
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        };
+
+        // --- PROCESS TEMPLATES DICTIONARY ---
+        const PROCESS_TEMPLATES = {
+            "etuys": {
+                name: "E-TUYS Teşvik Belgesi",
+                icon: "fa-solid fa-certificate",
+                color: "teal",
+                steps: [
+                    {
+                        id: 1, title: "Yetkilendirme", description: "Mersis ve e-imza işlemleri", status: "active", date: "-", icon: "fa-solid fa-file-signature", detail: "Yatırımcı yetki belgesi MERSİS üzerinden tanımlanacaktır.",
+                        requiredDocuments: "", requiredInformation: "", notes: "",
+                        checklist: [
+                            { id: "c1-1", text: "Müşteriden vekaletname kopyası istendi", done: false },
+                            { id: "c1-2", text: "KEP adresi ve şifreleri temin edildi", done: false },
+                            { id: "c1-3", text: "MERSİS üzerinden yetkilendirme başvurusu yapıldı", done: false },
+                            { id: "c1-4", text: "Bakanlık (E-TUYS) onayı düştü", done: false }
+                        ],
+                        documents: []
+                    },
+                    {
+                        id: 2, title: "Başvuru Dosyası", description: "Ek-1, Ek-2 Formları", status: "locked", date: "-", icon: "fa-solid fa-folder-open", detail: "Fizibilite raporu ve makine listesi hazırlanacak.",
+                        requiredDocuments: "", requiredInformation: "", notes: "",
+                        checklist: [
+                            { id: "c2-1", text: "Makine ve Techizat Listesi (Proforma Faturalar) toplandı", done: false },
+                            { id: "c2-2", text: "SGK Borcu Yoktur yazısı alındı", done: false },
+                            { id: "c2-3", text: "ÇED Raporu / Gerekli Değildir belgesi temin edildi", done: false },
+                            { id: "c2-4", text: "Fizibilite Raporu (Word/Excel) hazırlandı", done: false }
+                        ],
+                        documents: []
+                    },
+                    {
+                        id: 3, title: "Belge Onayı", description: "E-TUYS Belge Düzenlenmesi", status: "locked", date: "-", icon: "fa-solid fa-certificate", detail: "Yatırım Teşvik Belgesi, Bakanlık tarafından incelenmektedir.",
+                        requiredDocuments: "", requiredInformation: "", notes: "",
+                        checklist: [
+                            { id: "c3-1", text: "Bakanlık uzmanına başvuru iletildi", done: false },
+                            { id: "c3-2", text: "Uzman eksiklik bildirimi (Varsa eklenecek)", done: false },
+                            { id: "c3-3", text: "Harç ödemeleri tamamlandı", done: false },
+                            { id: "c3-4", text: "Teşvik Belgesi elektronik olarak onaylandı", done: false }
+                        ],
+                        documents: []
+                    },
+                    {
+                        id: 4, title: "Satın Alma / Fatura", description: "Makine KDV İstisna Alımı", status: "locked", date: "-", icon: "fa-solid fa-file-invoice-dollar", detail: "Makine teçhizat listesindeki ürünler için fatura bilgilerinizi giriniz.", requiresInvoice: true,
+                        requiredDocuments: "", requiredInformation: "", notes: "",
+                        checklist: [
+                            { id: "c4-1", text: "KDV İstisna belgesi müşteriye/tedarikçiye iletildi", done: false },
+                            { id: "c4-2", text: "Yerli/İthal makine faturaları kesildi", done: false },
+                            { id: "c4-3", text: "Faturalar E-TUYS sistemine giriş yapıldı", done: false },
+                            { id: "c4-4", text: "YMM (Yeminli Mali Müşavir) raporu hazırlandı", done: false }
+                        ],
+                        documents: []
+                    },
+                    {
+                        id: 5, title: "Tamamlama Vizesi", description: "Yatırımın Kapatılması", status: "locked", date: "-", icon: "fa-solid fa-flag-checkered", detail: "Tüm işlemler tamamlandıktan sonra EK-8 formları ile tamamlama vizesi müracaatı yapılacaktır.",
+                        requiredDocuments: "", requiredInformation: "", notes: "",
+                        checklist: [
+                            { id: "c5-1", text: "Yatırım gerçekleşme tutarları hesaplandı", done: false },
+                            { id: "c5-2", text: "İstihdam (SGK) verileri kontrol edildi", done: false },
+                            { id: "c5-3", text: "EK-8 Tamamlama Vizesi başvuru formu sisteme yüklendi", done: false },
+                            { id: "c5-4", text: "Ekspertiz ve Bakanlık uzmanı yerinde tespiti yapıldı", done: false },
+                            { id: "c5-5", text: "Belge tamamlama (Kapatma) vizesi onaylandı", done: false }
+                        ],
+                        documents: []
+                    }
+                ]
+            },
+            "isgum": {
+                name: "İşgüm İzni",
+                icon: "fa-solid fa-helmet-safety",
+                color: "amber",
+                steps: [
+                    { id: 1, title: "Adım 1", description: "Tanım girilmedi", status: "active", date: "-", icon: "fa-solid fa-clipboard-list", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] },
+                    { id: 2, title: "Adım 2", description: "Tanım girilmedi", status: "locked", date: "-", icon: "fa-solid fa-clipboard-check", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] },
+                    { id: 3, title: "Adım 3", description: "Tanım girilmedi", status: "locked", date: "-", icon: "fa-solid fa-flag-checkered", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] }
+                ]
+            },
+            "kullanilmis-esya": {
+                name: "Kullanılmış Eşya İzni",
+                icon: "fa-solid fa-boxes-stacked",
+                color: "purple",
+                steps: [
+                    { id: 1, title: "Adım 1", description: "Tanım girilmedi", status: "active", date: "-", icon: "fa-solid fa-clipboard-list", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] },
+                    { id: 2, title: "Adım 2", description: "Tanım girilmedi", status: "locked", date: "-", icon: "fa-solid fa-clipboard-check", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] },
+                    { id: 3, title: "Adım 3", description: "Tanım girilmedi", status: "locked", date: "-", icon: "fa-solid fa-flag-checkered", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] }
+                ]
+            }
+        };
+
+        // Legacy compatibility wrapper
+        const getBaseSteps = () => JSON.parse(JSON.stringify(PROCESS_TEMPLATES["etuys"].steps));
+
+        const getStepsForProcessType = (processType) => {
+            const template = PROCESS_TEMPLATES[processType];
+            if (template) return JSON.parse(JSON.stringify(template.steps));
+
+            // Check custom process templates
+            if (systemSettings && systemSettings.processTemplates && systemSettings.processTemplates[processType] && systemSettings.processTemplates[processType].steps) {
+                return JSON.parse(JSON.stringify(systemSettings.processTemplates[processType].steps));
+            }
+
+            return JSON.parse(JSON.stringify(PROCESS_TEMPLATES["etuys"].steps));
+        };
+
+        // System State
+        let projects = {};
+        let activeProjectId = null;
+        let systemSettings = {
+            customBaseSteps: null,       // Legacy: E-TUYS only
+            processTemplates: {}         // NEW: per-process custom templates { "isgum": [...steps], "kullanilmis-esya": [...steps] }
+        };
+
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjSQnmz72ejzrU55rJ_w8HoLEuivVmLUA",
+            authDomain: "majetakip.firebaseapp.com",
+            databaseURL: "https://majetakip-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "majetakip",
+            storageBucket: "majetakip.firebasestorage.app",
+            messagingSenderId: "605504472995",
+            appId: "1:605504472995:web:808ddd6b087f46526e7c16"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const fbDB = firebase.database();
+        const fbAuth = firebase.auth();
+
+        let dbSubscription = null;
+
+        const getActiveBaseSteps = (processType) => {
+            const pt = processType || "etuys";
+            // Check per-process custom templates first
+            if (systemSettings && systemSettings.processTemplates && systemSettings.processTemplates[pt] && systemSettings.processTemplates[pt].length > 0) {
+                return JSON.parse(JSON.stringify(systemSettings.processTemplates[pt]));
+            }
+            // Legacy: check old customBaseSteps for etuys
+            if (pt === "etuys" && systemSettings && systemSettings.customBaseSteps && systemSettings.customBaseSteps.length > 0) {
+                return JSON.parse(JSON.stringify(systemSettings.customBaseSteps));
+            }
+            return getStepsForProcessType(pt);
+        };
+
+        // Utilities
+        const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(val);
+        const generateId = () => 'PRJ-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast-container');
+            const icon = document.getElementById('toast-icon');
+
+            toast.className = `fixed bottom-8 left-1/2 flex items-center gap-3 px-6 py-4 rounded-xl shadow-lg font-medium text-sm text-white z-50 transition-all transform -translate-x-1/2`;
+
+            if (type === 'error') {
+                toast.classList.add('bg-red-500');
+                icon.className = 'fa-solid fa-triangle-exclamation text-xl';
+            } else if (type === 'success') {
+                toast.classList.add('bg-emerald-500');
+                icon.className = 'fa-solid fa-check-circle text-xl';
+            } else if (type === 'info') {
+                toast.classList.add('bg-blue-500');
+                icon.className = 'fa-solid fa-circle-info text-xl';
+            }
+
+            document.getElementById('toast-message').innerText = message;
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-0', 'opacity-100');
+                toast.classList.remove('translate-y-full', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-full', 'opacity-0');
+            }, 4000);
+        }
+
+        // Data Management (Firebase)
+        function executeEmergencyReset() {
+            if (confirm("ACİL DURUM SIFIRLAMASI: Bu işlem buluttaki bozuk şablonları silecek ancak projelerinizi tutacaktır. Onaylıyor musunuz?")) {
+                systemSettings = { customBaseSteps: null, processTemplates: {} };
+                Object.values(projects).forEach(p => {
+                    p.steps = getActiveBaseSteps(p.processType);
+                    p.selectedStepId = 1;
+                });
+                saveToLocalStorage();
+                location.reload();
+            }
+        }
+
+        function saveToLocalStorage() {
+            // Save data to Firebase
+            fbDB.ref('MajeTakipData').set({
+                projects: projects,
+                activeProjectId: activeProjectId,
+                systemSettings: systemSettings
+            }).catch(err => {
+                console.error("Firebase'e Kayıt Başarısız:", err);
+                showToast("Buluta kaydedilemedi! Bağlantıyı kontrol edin.", "error");
+            });
+            // Update UI after modifying memory (firebase handles remote sync)
+            updateUI();
+        }
+
+        function loadFromLocalStorage() {
+            // Clean up any old listeners to prevent stacking
+            if (dbSubscription) dbSubscription.off();
+
+            // Listen to data changes from Firebase Realtime Database
+            dbSubscription = fbDB.ref('MajeTakipData').on('value', (snapshot) => {
+                const parsed = snapshot.val();
+                if (parsed) {
+                    projects = parsed.projects || {};
+                    activeProjectId = parsed.activeProjectId;
+                    systemSettings = parsed.systemSettings || { customBaseSteps: null, processTemplates: {} };
+                    if (!systemSettings.processTemplates) systemSettings.processTemplates = {};
+
+                    // Data Migration and Firebase Formatting Fixes
+                    Object.values(projects).forEach(p => {
+                        // Migration: assign processType to existing projects
+                        if (!p.processType) p.processType = 'etuys';
+                        if (!p.companyInfo) p.companyInfo = { company: "", docId: "", docNum: "", appDate: "", arrivalDate: "", person: "", leasingName: "", leasingOfficial: "" };
+
+                        // Firebase sometimes converts arrays to objects. Convert them back.
+                        if (!p.steps) p.steps = getActiveBaseSteps(p.processType);
+                        if (!Array.isArray(p.steps)) p.steps = Object.values(p.steps);
+                        p.steps = p.steps.filter(s => s !== null && typeof s === 'object');
+
+                        // If steps got completely wiped out or corrupted, reset to base steps to prevent UI crash
+                        if (p.steps.length === 0 || !p.steps[0] || !p.steps[0].id) {
+                            p.steps = getActiveBaseSteps(p.processType);
+                            if (!Array.isArray(p.steps)) p.steps = Object.values(p.steps);
+                        }
+
+                        if (!p.selectedStepId || !p.steps.find(s => s && s.id === p.selectedStepId)) {
+                            p.selectedStepId = p.steps.length > 0 && p.steps[0] ? p.steps[0].id : 1;
+                        }
+
+                        p.steps.forEach(s => {
+                            if (!s) return;
+                            if (s.notes === undefined) s.notes = "";
+                            if (s.requiredDocuments === undefined) s.requiredDocuments = "";
+                            if (s.requiredInformation === undefined) s.requiredInformation = "";
+
+                            if (!s.checklist) s.checklist = [];
+                            else if (!Array.isArray(s.checklist)) s.checklist = Object.values(s.checklist);
+                            s.checklist = s.checklist.filter(c => c !== null && typeof c === 'object');
+
+                            if (!s.documents) s.documents = [];
+                            else if (!Array.isArray(s.documents)) s.documents = Object.values(s.documents);
+                            s.documents = s.documents.filter(d => d !== null && typeof d === 'object');
+
+                            if (!s.meetingNotes) s.meetingNotes = [];
+                            else if (!Array.isArray(s.meetingNotes)) s.meetingNotes = Object.values(s.meetingNotes);
+                            s.meetingNotes = s.meetingNotes.filter(m => m !== null && typeof m === 'object');
+                        });
+                    });
+                } else {
+                    // Initialize with demo data if completely empty
+                    const demoId = "PRJ-DEMO-001";
+                    projects[demoId] = {
+                        id: demoId,
+                        processType: "etuys",
+                        name: "Yeşil ve Dijital Dönüşüm - Modernizasyon (Demo)",
+                        startDate: "2026-02-01",
+                        totalInvestment: 50000000,
+                        machineCount: 15,
+                        companyInfo: {
+                            company: "DEMO A.Ş.", docId: "123456", docNum: "A-987", appDate: "2026-01-15",
+                            arrivalDate: "2026-01-10", person: "Ahmet Yılmaz", leasingName: "Garanti BBVA Leasing",
+                            leasingOfficial: "Ayşe Hanım"
+                        },
+                        steps: getActiveBaseSteps("etuys"),
+                        selectedStepId: 1
+                    };
+                    activeProjectId = demoId;
+
+                    // Yazdır ki diğer kullanıcılarda da oluşsun
+                    fbDB.ref('MajeTakipData').set({
+                        projects: projects,
+                        activeProjectId: activeProjectId,
+                        systemSettings: Object.keys(systemSettings).length ? systemSettings : { customBaseSteps: null }
+                    });
+                }
+
+                if (!projects[activeProjectId] && Object.keys(projects).length > 0) {
+                    activeProjectId = Object.keys(projects)[0];
+                }
+
+                updateUI();
+            }, (errorObject) => {
+                console.error("Firebase Okuma Hatası:", errorObject);
+                showToast("Sunucudan veri çekilemedi!", "error");
+            });
+        }
+
+        function deleteActiveProject() {
+            const p = getActiveProject();
+            if (!p) return;
+
+            if (confirm(`DİKKAT! Seçili olan "${p.name}" projesi TÜM BİLGİLERİYLE KALICI OLARAK silinecektir. Devam etmek istiyor musunuz?`)) {
+                if (confirm("Bu işlem geri döndürülemez. Tekrar soruyorum, projeyi SİLMEK istediğinize emin misiniz?")) {
+                    const pass = prompt(`Sıfırlama işlemini son kez onaylamak için lütfen 'SİL' yazın:`);
+                    if (pass === "SİL" || pass === "sil" || pass === "Sil") {
+
+                        delete projects[activeProjectId];
+                        activeProjectId = null;
+
+                        saveToLocalStorage();
+                        loadFromLocalStorage(); // This will auto-switch to a remaining project or load demo if empty
+                        updateUI();
+
+                        showToast("Seçili proje başarıyla silindi.", "info");
+                    } else {
+                        showToast("Yanlış kelime girdiniz. Silme işlemi iptal edildi.", "error");
+                    }
+                } else {
+                    showToast("Silme işlemi iptal edildi.", "info");
+                }
+            } else {
+                showToast("Silme işlemi iptal edildi.", "info");
+            }
+        }
+
+        // Project Management UI
+        function renderProjectSelector() {
+            const selector = document.getElementById('project-selector');
+            selector.innerHTML = '';
+
+            Object.values(projects).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+
+                // Get name from custom or default templates
+                let ptName = 'E-TUYS';
+                if (PROCESS_TEMPLATES[p.processType]) {
+                    ptName = PROCESS_TEMPLATES[p.processType].name;
+                } else if (systemSettings.processTemplates && systemSettings.processTemplates[p.processType]) {
+                    ptName = systemSettings.processTemplates[p.processType].name || p.processType;
+                }
+
+                opt.textContent = `[${ptName}] ${p.name} (${p.id})`;
+                if (p.id === activeProjectId) opt.selected = true;
+                selector.appendChild(opt);
+            });
+        }
+
+        function switchProject(projectId) {
+            if (projects[projectId]) {
+                activeProjectId = projectId;
+                saveToLocalStorage();
+                updateUI();
+                showToast("Proje değiştirildi: " + projects[projectId].name, "success");
+            }
+        }
+
+        function openNewProjectModal() {
+            // Populate process type dropdown
+            const ptSelect = document.getElementById('new-project-process-type');
+            ptSelect.innerHTML = '';
+
+            // 1. Add Default Templates
+            Object.entries(PROCESS_TEMPLATES).forEach(([key, template]) => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `[Varsayılan] ${template.name}`;
+                ptSelect.appendChild(opt);
+            });
+
+            // 2. Add Custom Templates
+            if (systemSettings.processTemplates) {
+                Object.entries(systemSettings.processTemplates).forEach(([key, templateObj]) => {
+                    // It can be an object with .name & .steps or just array of steps in legacy. 
+                    // Let's only render if it has a proper structure with name, skipping legacy array process templates directly
+                    if (templateObj && templateObj.name && templateObj.isCustomProcessType) {
+                        const opt = document.createElement('option');
+                        opt.value = key;
+                        opt.textContent = `[Özel] ${templateObj.name}`;
+                        ptSelect.appendChild(opt);
+                    }
+                });
+            }
+
+            document.getElementById('new-project-name').value = '';
+            document.getElementById('new-project-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('new-project-investment').value = '';
+            document.getElementById('new-project-machine-count').value = '';
+            document.getElementById('new-project-company').value = '';
+            document.getElementById('new-project-doc-id').value = '';
+            document.getElementById('new-project-doc-num').value = '';
+            document.getElementById('new-project-app-date').value = '';
+            document.getElementById('new-project-arrival-date').value = '';
+            document.getElementById('new-project-person').value = '';
+            document.getElementById('new-project-lease-name').value = '';
+            document.getElementById('new-project-lease-off').value = '';
+
+            toggleProcessTypeDeleteBtn();
+
+            const modal = document.getElementById('new-project-modal');
+            const box = document.getElementById('modal-content-box');
+
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0');
+            box.classList.add('scale-100');
+            box.classList.remove('scale-95');
+        }
+
+        function closeNewProjectModal() {
+            const modal = document.getElementById('new-project-modal');
+            const box = document.getElementById('modal-content-box');
+
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function openNewProcessTypeModal() {
+            document.getElementById('new-process-type-name').value = '';
+            const modal = document.getElementById('new-process-type-modal');
+            const box = document.getElementById('process-type-modal-content-box');
+
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0');
+            box.classList.add('scale-100');
+            box.classList.remove('scale-95');
+        }
+
+        function closeNewProcessTypeModal() {
+            const modal = document.getElementById('new-process-type-modal');
+            const box = document.getElementById('process-type-modal-content-box');
+
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function saveNewProcessType() {
+            const nameInput = document.getElementById('new-process-type-name').value.trim();
+            if (!nameInput) {
+                showToast("Süreç adı boş olamaz.", "error");
+                return;
+            }
+
+            // generate key
+            const key = 'custom_' + nameInput.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+
+            if (!systemSettings.processTemplates) systemSettings.processTemplates = {};
+
+            // Initialize with 3 empty template steps for the custom process
+            systemSettings.processTemplates[key] = {
+                name: nameInput,
+                isCustomProcessType: true,
+                icon: "fa-solid fa-folder-tree",
+                color: "brand",
+                steps: [
+                    { id: 1, title: "Yeni Adım 1", description: "Açıklama girin.", status: "active", date: "-", icon: "fa-solid fa-clipboard-list", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] },
+                    { id: 2, title: "Yeni Adım 2", description: "Açıklama girin.", status: "locked", date: "-", icon: "fa-solid fa-clipboard-check", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] },
+                    { id: 3, title: "Tamamlama", description: "Süreci bitir.", status: "locked", date: "-", icon: "fa-solid fa-flag-checkered", detail: "Admin panelinden düzenleyin.", requiredDocuments: "", requiredInformation: "", notes: "", checklist: [], documents: [] }
+                ]
+            };
+
+            saveToLocalStorage();
+            closeNewProcessTypeModal();
+
+            // Re-populate if currently active
+            if (!document.getElementById('new-project-modal').classList.contains('hidden')) {
+                // If the new project modal is open, let's refresh its dropdown
+                const ptSelect = document.getElementById('new-project-process-type');
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `[Özel] ${nameInput}`;
+                ptSelect.appendChild(opt);
+                ptSelect.value = key; // Select it automatically
+                toggleProcessTypeDeleteBtn(); // Update delete btn state
+            }
+
+            showToast(`Yeni süreç tipi '${nameInput}' başarıyla eklendi!`, "success");
+        }
+
+        function toggleProcessTypeDeleteBtn() {
+            const ptSelect = document.getElementById('new-project-process-type');
+            const delBtn = document.getElementById('delete-process-type-btn');
+            // Check if selected process type is not one of the built-in defaults
+            const isCustom = ptSelect && ptSelect.value && ptSelect.value !== 'etuys' && ptSelect.value !== 'isgum' && ptSelect.value !== 'kullanilmis-esya';
+
+            if (delBtn && isCustom) {
+                delBtn.classList.remove('hidden');
+                delBtn.classList.add('flex');
+            } else if (delBtn) {
+                delBtn.classList.add('hidden');
+                delBtn.classList.remove('flex');
+            }
+        }
+
+        function deleteSelectedProcessType() {
+            const ptSelect = document.getElementById('new-project-process-type');
+            if (!ptSelect) return;
+            const key = ptSelect.value;
+
+            if (key === 'etuys' || key === 'isgum' || key === 'kullanilmis-esya') return;
+
+            // Check if any projects are using this template
+            const isUsed = Object.values(projects).some(p => p.processType === key);
+            if (isUsed) {
+                showToast("Bu süreç tipi bazı projelerde kullanıldığı için silinemez!", "error");
+                return;
+            }
+
+            if (confirm("Bu özel süreç tipini kalıcı olarak silmek istediğinize emin misiniz?")) {
+                if (systemSettings.processTemplates && systemSettings.processTemplates[key]) {
+                    delete systemSettings.processTemplates[key];
+                    saveToLocalStorage();
+                    openNewProjectModal(); // refresh dropdown
+                    toggleProcessTypeDeleteBtn(); // Ensure delete btn resets
+                    showToast("Süreç tipi başarıyla silindi.", "success");
+                }
+            }
+        }
+
+        function saveNewProject() {
+            const processType = document.getElementById('new-project-process-type').value;
+            const name = document.getElementById('new-project-name').value;
+            const date = document.getElementById('new-project-date').value;
+            const investment = document.getElementById('new-project-investment').value;
+            const currency = document.getElementById('new-project-currency').value;
+            const machines = document.getElementById('new-project-machine-count').value;
+
+            // Company & Customs Info
+            const companyInfo = {
+                company: (document.getElementById('new-project-company').value || '').trim(),
+                docId: (document.getElementById('new-project-doc-id').value || '').trim(),
+                docNum: (document.getElementById('new-project-doc-num').value || '').trim(),
+                appDate: document.getElementById('new-project-app-date').value || '',
+                arrivalDate: document.getElementById('new-project-arrival-date').value || '',
+                person: (document.getElementById('new-project-person').value || '').trim(),
+                leasingName: (document.getElementById('new-project-lease-name').value || '').trim(),
+                leasingOfficial: (document.getElementById('new-project-lease-off').value || '').trim(),
+
+                // Customs & Machinery Optionals
+                equipName: (document.getElementById('new-project-equip-name').value || '').trim(),
+                gtip: (document.getElementById('new-project-gtip').value || '').trim(),
+                quantity: (document.getElementById('new-project-quantity').value || '').trim(),
+                origin: (document.getElementById('new-project-origin').value || '').trim(),
+                shipping: (document.getElementById('new-project-shipping').value || '').trim(),
+                incoterms: (document.getElementById('new-project-incoterms').value || '').trim(),
+                supplier: (document.getElementById('new-project-supplier').value || '').trim(),
+                importer: (document.getElementById('new-project-importer').value || '').trim(),
+                exporter: (document.getElementById('new-project-exporter').value || '').trim(),
+            };
+
+            if (!name || !date || !investment || !machines) {
+                showToast("Lütfen temel proje bilgilerini doldurun.", "error");
+                return;
+            }
+
+            const newId = generateId();
+            projects[newId] = {
+                id: newId,
+                processType: processType,
+                name: name,
+                startDate: date,
+                totalInvestment: parseFloat(investment),
+                currency: currency || 'TRY',
+                machineCount: parseInt(machines, 10),
+                companyInfo: companyInfo,
+                steps: getActiveBaseSteps(processType),
+                selectedStepId: 1
+            };
+
+            activeProjectId = newId;
+            saveToLocalStorage();
+
+            closeNewProjectModal();
+            updateUI();
+            showToast("Yeni proje başarıyla oluşturuldu.", "success");
+        }
+
+        // Active Project Logic
+        const getActiveProject = () => projects[activeProjectId];
+
+        function calculateProgress() {
+            const p = getActiveProject();
+            if (!p || !p.steps) return 0;
+            const completedCount = p.steps.filter(s => s.status === 'completed').length;
+            return Math.min(100, Math.round((completedCount / p.steps.length) * 100));
+        }
+
+        function loadDashboardInfo() {
+            const p = getActiveProject();
+            const el = (id) => document.getElementById(id);
+
+            if (!p) {
+                if (el('project-id-badge')) el('project-id-badge').innerText = 'Kayıtlı Proje Yok';
+                if (el('total-investment')) el('total-investment').innerText = '0 ₺';
+                if (el('machine-count')) el('machine-count').innerText = 0;
+                if (el('progress-percent')) el('progress-percent').innerText = 0;
+                if (el('header-progress-bar')) el('header-progress-bar').style.width = '0%';
+                return;
+            }
+
+            if (el('project-id-badge')) {
+                let pt = null;
+                if (PROCESS_TEMPLATES[p.processType]) {
+                    pt = PROCESS_TEMPLATES[p.processType];
+                } else if (systemSettings && systemSettings.processTemplates && systemSettings.processTemplates[p.processType]) {
+                    pt = systemSettings.processTemplates[p.processType];
+                } else {
+                    pt = PROCESS_TEMPLATES['etuys']; // safe fallback
+                }
+
+                el('project-id-badge').innerHTML = `
+                    <span class="inline-flex items-center bg-${pt.color}-100 text-${pt.color}-700 px-2 py-0.5 rounded-md text-[10px] font-bold mr-2 border border-${pt.color}-200 uppercase">
+                        <i class="${pt.icon} mr-1"></i> ${pt.name}
+                    </span>
+                    ${p.id} • Proje Başlangıç: ${p.startDate}
+                `;
+            }
+            if (el('total-investment')) {
+                const currencySymbols = { TRY: '₺', EUR: '€', USD: '$', GBP: '£', CHF: 'Fr', JPY: '¥', CNY: '¥', RUB: '₽', AED: 'د.إ', CAD: '$', AUD: '$', DKK: 'kr', SEK: 'kr', NOK: 'kr', KWD: 'KD', SAR: 'SR' };
+                const curText = currencySymbols[p.currency || 'TRY'] || p.currency || '₺';
+                el('total-investment').innerText = formatCurrency(p.totalInvestment) + ' ' + curText;
+            }
+            if (el('machine-count')) el('machine-count').innerText = p.machineCount || 0;
+
+            const progress = calculateProgress();
+            if (el('progress-percent')) el('progress-percent').innerText = progress;
+            if (el('header-progress-bar')) el('header-progress-bar').style.width = `${progress}%`;
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timeline-container');
+            container.innerHTML = '';
+
+            const p = getActiveProject();
+            if (!p || !p.steps || !Array.isArray(p.steps)) return;
+
+            p.steps.forEach((step, index) => {
+                const isSelected = step.id === p.selectedStepId;
+                const isCompleted = step.status === 'completed';
+                const isActive = step.status === 'active';
+                const isLocked = step.status === 'locked';
+
+                let iconBg = isCompleted ? 'bg-brand-50 mt-1 border border-brand-200' :
+                    isActive ? 'bg-blue-50 mt-1 border border-blue-200 shadow-[0_0_10px_rgba(59,130,246,0.3)]' :
+                        'bg-slate-100 mt-1 border border-slate-200';
+
+                let iconColor = isCompleted ? 'text-brand-500' : isActive ? 'text-blue-500' : 'text-slate-400';
+                let iconHtml = `<i class="${step.icon} text-sm"></i>`;
+                if (isLocked) iconHtml = `<i class="fa-solid fa-lock text-xs"></i>`;
+
+                let lineClass = isCompleted ? 'completed' : '';
+                let cardClass = 'step-card relative flex gap-4 p-3 rounded-xl cursor-pointer mb-2';
+                cardClass += isLocked ? ' locked opacity-60' : ' hover:bg-white border border-transparent';
+
+                if (isSelected) {
+                    cardClass += ' bg-white shadow-sm border border-slate-200 ring-1 ring-slate-100';
+                }
+
+                container.innerHTML += `
+                    <div class="${cardClass}" onclick="selectStep(${step.id})">
+                        <div class="timeline-connector ${lineClass}"></div>
+                        <div class="relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconBg} ${iconColor} transition-colors duration-300">
+                            ${iconHtml}
+                        </div>
+                        <div class="flex-1 pt-1 opacity-100">
+                            <h3 class="text-sm font-bold ${isLocked ? 'text-slate-500' : 'text-slate-800'} transition-colors">${step.title}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">${step.description}</p>
+                            ${isCompleted ? `<span class="text-[10px] font-semibold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded mt-1.5 inline-block border border-brand-100"><i class="fa-solid fa-check mr-0.5"></i> ${step.date}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function selectStep(id) {
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === id);
+
+            if (step.status === 'locked') return; // VALIDATION: RULE 1
+
+            p.selectedStepId = id;
+            saveToLocalStorage();
+            renderTimeline();
+            renderDetailPanel();
+        }
+
+        // --- NEW CONSULTANT ACTIONS ---
+
+        function toggleChecklist(stepId, checklistId, checked) {
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step) {
+                const item = step.checklist.find(c => c.id === checklistId);
+                if (item) {
+                    item.done = checked;
+                    saveToLocalStorage();
+                }
+            }
+        }
+
+        function updateStepNotes(stepId, text) {
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step) {
+                step.notes = text;
+                saveToLocalStorage();
+            }
+        }
+
+        // Generic helper to update a single field on a project step and save
+        function updateStepField(stepId, fieldName, value) {
+            const p = getActiveProject();
+            if (!p) return;
+            const step = p.steps.find(s => s.id === stepId);
+            if (!step) return;
+            step[fieldName] = value;
+            saveToLocalStorage();
+        }
+
+        function addMeetingNote(stepId) {
+            const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+            const person = getVal('note-person');
+            const company = getVal('note-company');
+            const date = getVal('note-date');
+            const text = getVal('note-text');
+
+            if (!person && !company) {
+                showToast("Firma/Kurum veya İlgili Kişi belirtilmelidir", "error");
+                return;
+            }
+            if (!text) {
+                showToast("Açıklama/Not alanı zorunludur", "error");
+                return;
+            }
+
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step) {
+                if (!step.meetingNotes) step.meetingNotes = [];
+                step.meetingNotes.push({
+                    id: 'note-' + Date.now(),
+                    person, company, date, text
+                });
+                saveToLocalStorage();
+                renderDetailPanel();
+                showToast("Not eklendi", "success");
+            }
+        }
+
+        function deleteMeetingNote(stepId, noteId) {
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step && step.meetingNotes) {
+                step.meetingNotes = step.meetingNotes.filter(n => n.id !== noteId);
+                saveToLocalStorage();
+                renderDetailPanel();
+                showToast("Not silindi", "info");
+            }
+        }
+
+        function addGeneralNote(stepId) {
+            const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+            const person = getVal('gnote-person');
+            const date = getVal('gnote-date');
+            const text = getVal('gnote-text');
+
+            if (!person) {
+                showToast("Notu yazan kişi belirtilmelidir", "error");
+                return;
+            }
+            if (!text) {
+                showToast("Not açıklaması zorunludur", "error");
+                return;
+            }
+
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step) {
+                if (!step.generalNotes) step.generalNotes = [];
+                step.generalNotes.push({
+                    id: 'gnote-' + Date.now(),
+                    person, date, text
+                });
+                saveToLocalStorage();
+                renderDetailPanel();
+                showToast("Genel not eklendi", "success");
+            }
+        }
+
+        function deleteGeneralNote(stepId, noteId) {
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step && step.generalNotes) {
+                step.generalNotes = step.generalNotes.filter(n => n.id !== noteId);
+                saveToLocalStorage();
+                renderDetailPanel();
+                showToast("Genel not silindi", "info");
+            }
+        }
+
+        // --- COMPANY MODAL LOGIC ---
+        function openCompanyModal() {
+            const p = getActiveProject();
+            if (!p) {
+                showToast("Aktif proje bulunamadı.", "error");
+                return;
+            }
+            if (!p.companyInfo) p.companyInfo = { company: "", docId: "", docNum: "", appDate: "", arrivalDate: "", person: "", leasingName: "", leasingOfficial: "" };
+
+            const info = p.companyInfo;
+            const modal = document.getElementById('company-identity-modal');
+            const box = document.getElementById('company-modal-content-box');
+            const body = document.getElementById('company-modal-body');
+
+            body.innerHTML = `
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Firma / Kurum Adı</label>
+                        <input type="text" id="ci-company" value="${info.company || ''}" placeholder="Örn: ABC A.Ş."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Yetkili Kişi</label>
+                        <input type="text" id="ci-person" value="${info.person || ''}" placeholder="Örn: Ahmet Yılmaz"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
+                    <div class="border-t border-slate-200 pt-4 mt-2">
+                        <h4 class="text-xs font-bold text-emerald-600 mb-3 uppercase tracking-wider"><i class="fa-solid fa-certificate mr-1"></i> Belge Bilgileri</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Belge ID</label>
+                                <input type="text" id="ci-doc-id" value="${info.docId || ''}" placeholder="Teşvik belgesi alınca girilecek"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Belge Sayısı</label>
+                                <input type="text" id="ci-doc-num" value="${info.docNum || ''}" placeholder="Teşvik belgesi alınca girilecek"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Başvuru Tarihi</label>
+                            <input type="date" id="ci-app-date" value="${info.appDate || ''}"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Geldiği Tarih</label>
+                            <input type="date" id="ci-arrival-date" value="${info.arrivalDate || ''}"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-200 pt-4 mt-2">
+                        <h4 class="text-xs font-bold text-emerald-600 mb-3 uppercase tracking-wider"><i class="fa-solid fa-handshake mr-1"></i> Leasing Bilgileri</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Leasing Adı (Ops.)</label>
+                                <input type="text" id="ci-lease-name" value="${info.leasingName || ''}" placeholder="Kurum Adı"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Leasing Yetkilisi</label>
+                                <input type="text" id="ci-lease-off" value="${info.leasingOfficial || ''}" placeholder="Yetkili"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW CUSTOMS & OPTIONAL FIELDS IN MODAL -->
+                    <div class="border-t border-slate-200 pt-4 mt-4">
+                        <h4 class="text-xs font-bold text-blue-600 mb-3 uppercase tracking-wider"><i class="fa-solid fa-truck-fast mr-1"></i> İthalat / Teçhizat Bilgileri</h4>
+                        
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Teçhizat / Makine Adı</label>
+                            <input type="text" id="ci-equip-name" value="${info.equipName || ''}" placeholder="Örn: CNC Dik İşlem Merkezi"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">GTİP Numarası</label>
+                                <input type="text" id="ci-gtip" value="${info.gtip || ''}" placeholder="Örn: 8457.10.90.00.00"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Miktar ve Birim</label>
+                                <input type="text" id="ci-quantity" value="${info.quantity || ''}" placeholder="Örn: 2 Adet / 1 Hat"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Menşei Ülke</label>
+                                <input type="text" id="ci-origin" value="${info.origin || ''}" placeholder="Örn: Almanya, Japonya"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Sevk Bölgesi / Liman</label>
+                                <input type="text" id="ci-shipping" value="${info.shipping || ''}" placeholder="Örn: Hamburg Limanı"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Teslim Şekli (INCOTERMS)</label>
+                                <select id="ci-incoterms" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="" ${!info.incoterms ? 'selected' : ''}>Seçiniz...</option>
+                                    <option value="EXW" ${info.incoterms === 'EXW' ? 'selected' : ''}>EXW (Ex Works)</option>
+                                    <option value="FCA" ${info.incoterms === 'FCA' ? 'selected' : ''}>FCA (Free Carrier)</option>
+                                    <option value="FAS" ${info.incoterms === 'FAS' ? 'selected' : ''}>FAS (Free Alongside Ship)</option>
+                                    <option value="FOB" ${info.incoterms === 'FOB' ? 'selected' : ''}>FOB (Free On Board)</option>
+                                    <option value="CFR" ${info.incoterms === 'CFR' ? 'selected' : ''}>CFR (Cost and Freight)</option>
+                                    <option value="CIF" ${info.incoterms === 'CIF' ? 'selected' : ''}>CIF (Cost, Insurance, Freight)</option>
+                                    <option value="CPT" ${info.incoterms === 'CPT' ? 'selected' : ''}>CPT (Carriage Paid To)</option>
+                                    <option value="CIP" ${info.incoterms === 'CIP' ? 'selected' : ''}>CIP (Carriage and Insurance Paid)</option>
+                                    <option value="DAP" ${info.incoterms === 'DAP' ? 'selected' : ''}>DAP (Delivered at Place)</option>
+                                    <option value="DPU" ${info.incoterms === 'DPU' ? 'selected' : ''}>DPU (Delivered at Place Unloaded)</option>
+                                    <option value="DDP" ${info.incoterms === 'DDP' ? 'selected' : ''}>DDP (Delivered Duty Paid)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Üretici Firma</label>
+                                <input type="text" id="ci-supplier" value="${info.supplier || ''}" placeholder="Örn: Firma AG"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">İthalatçı Firma</label>
+                                <input type="text" id="ci-importer" value="${info.importer || ''}" placeholder="Örn: ABC İthalat A.Ş."
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">İhracatçı Firma</label>
+                                <input type="text" id="ci-exporter" value="${info.exporter || ''}" placeholder="Örn: XYZ Export GmbH"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button onclick="closeCompanyModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-sm font-bold transition-colors">
+                        İptal
+                    </button>
+                    <button onclick="saveCompanyInfo()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-md transition-all flex items-center">
+                        <i class="fa-solid fa-save mr-2"></i> Kaydet
+                    </button>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0');
+            box.classList.add('scale-100');
+            box.classList.remove('scale-95');
+        }
+
+        function saveCompanyInfo() {
+            const p = getActiveProject();
+            if (!p) return;
+
+            p.companyInfo = {
+                company: (document.getElementById('ci-company').value || '').trim(),
+                docId: (document.getElementById('ci-doc-id').value || '').trim(),
+                docNum: (document.getElementById('ci-doc-num').value || '').trim(),
+                appDate: document.getElementById('ci-app-date').value || '',
+                arrivalDate: document.getElementById('ci-arrival-date').value || '',
+                person: (document.getElementById('ci-person').value || '').trim(),
+                leasingName: (document.getElementById('ci-lease-name').value || '').trim(),
+                leasingOfficial: (document.getElementById('ci-lease-off').value || '').trim(),
+                equipName: (document.getElementById('ci-equip-name').value || '').trim(),
+                gtip: (document.getElementById('ci-gtip').value || '').trim(),
+                quantity: (document.getElementById('ci-quantity').value || '').trim(),
+                origin: (document.getElementById('ci-origin').value || '').trim(),
+                shipping: (document.getElementById('ci-shipping').value || '').trim(),
+                incoterms: (document.getElementById('ci-incoterms').value || '').trim(),
+                supplier: (document.getElementById('ci-supplier').value || '').trim(),
+                importer: (document.getElementById('ci-importer').value || '').trim(),
+                exporter: (document.getElementById('ci-exporter').value || '').trim(),
+            };
+
+            saveToLocalStorage();
+            closeCompanyModal();
+            showToast("Firma ve belge bilgileri başarıyla güncellendi.", "success");
+        }
+
+        function closeCompanyModal() {
+            const modal = document.getElementById('company-identity-modal');
+            const box = document.getElementById('company-modal-content-box');
+
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('border-brand-500', 'bg-brand-50');
+            e.currentTarget.classList.remove('border-slate-300', 'bg-slate-50');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-brand-500', 'bg-brand-50');
+            e.currentTarget.classList.add('border-slate-300', 'bg-slate-50');
+        }
+
+        function handleDrop(e, stepId) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            e.currentTarget.classList.remove('border-brand-500', 'bg-brand-50');
+            e.currentTarget.classList.add('border-slate-300', 'bg-slate-50');
+
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const p = getActiveProject();
+                const step = p.steps.find(s => s.id === stepId);
+                if (step) {
+                    Array.from(e.dataTransfer.files).forEach((file, index) => {
+                        const fileExt = file.name.split('.').pop().toUpperCase();
+                        step.documents.push({
+                            id: 'doc-' + Date.now() + '-' + index,
+                            name: file.name,
+                            ext: fileExt || "BİLİNMİYOR",
+                            note: "Sürükle bırak ile eklendi",
+                            dateAdded: new Date().toISOString().split('T')[0]
+                        });
+                    });
+                    saveToLocalStorage();
+                    renderDetailPanel();
+                    showToast(`${e.dataTransfer.files.length} adet dosya kaydı eklendi`, "success");
+                }
+            }
+        }
+
+        function addDocument(stepId) {
+            const docNameInput = document.getElementById('new-doc-name');
+            const docExtInput = document.getElementById('new-doc-ext');
+            const docNoteInput = document.getElementById('new-doc-note');
+
+            let docName = docNameInput.value.trim();
+            const docExt = docExtInput.value;
+            const docNote = docNoteInput.value.trim();
+
+            if (!docName) {
+                showToast("Lütfen evrak/belge adını giriniz.", "error");
+                return;
+            }
+
+            // Append extension if not already present
+            if (docExt && !docName.toUpperCase().endsWith('.' + docExt)) {
+                docName += '.' + docExt.toLowerCase();
+            }
+
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+
+            if (step) {
+                step.documents.push({
+                    id: 'doc-' + Date.now(),
+                    name: docName,
+                    ext: docExt || "DOC",
+                    note: docNote || "Açıklama yok",
+                    dateAdded: new Date().toISOString().split('T')[0]
+                });
+                saveToLocalStorage();
+                renderDetailPanel(); // Re-render to show new doc
+                showToast("Belge kaydı eklendi", "success");
+            }
+        }
+
+        function deleteDocument(stepId, docId) {
+            const p = getActiveProject();
+            const step = p.steps.find(s => s.id === stepId);
+            if (step) {
+                step.documents = step.documents.filter(d => d.id !== docId);
+                saveToLocalStorage();
+                renderDetailPanel();
+            }
+        }
+
+        // --- END CONSULTANT ACTIONS ---
+
+        function handleCompleteStep(id) {
+            const p = getActiveProject();
+            const stepIndex = p.steps.findIndex(s => s.id === id);
+            if (stepIndex === -1) return;
+
+            const step = p.steps[stepIndex];
+
+            if (step.status !== 'active') {
+                showToast("Bu işlem adımı şu an aktif değil.", "error");
+                return;
+            }
+
+            // Optional validations can go here if needed.
+            if (step.requiresInvoice) {
+                // For now, in consultant mode, we removed the strict blocking UI "drag-drop" invoice upload
+                // but kept the logic if needed. We assume they note everything in the textarea.
+            }
+
+            // Mark complete
+            p.steps[stepIndex].status = 'completed';
+            p.steps[stepIndex].date = new Date().toISOString().split('T')[0];
+
+            // Unlock next
+            if (stepIndex + 1 < p.steps.length) {
+                p.steps[stepIndex + 1].status = 'active';
+                p.selectedStepId = p.steps[stepIndex + 1].id;
+            }
+
+            saveToLocalStorage();
+            showToast("Aşama başarıyla tamamlandı ve kapatıldı.", "success");
+            updateUI();
+        }
+
+        function renderDetailPanel() {
+            const container = document.getElementById('detail-content');
+            const p = getActiveProject();
+
+            if (!p || !p.steps) {
+                container.innerHTML = '<div class="flex items-center justify-center p-12 text-slate-400 font-medium">Görüntülenecek veri bulunamadı. Lütfen yeni bir proje ekleyin.</div>';
+                return;
+            }
+
+            const step = p.steps.find(s => s.id === p.selectedStepId);
+            if (!step) return;
+
+            const isReadOnly = step.status === 'completed';
+
+            let statusBadge = '';
+            if (step.status === 'completed') {
+                statusBadge = '<span class="bg-brand-100 text-brand-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Tamamlandı</span>';
+            } else if (step.status === 'active') {
+                statusBadge = '<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-rotate mr-1.5 fa-spin-pulse"></i> İşlem Bekliyor</span>';
+            } else {
+                statusBadge = '<span class="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center"><i class="fa-solid fa-lock mr-1.5"></i> Kilitli</span>';
+            }
+
+            let html = `
+                <div class="flex items-start justify-between border-b border-slate-100 pb-5 mb-5 shrink-0">
+                    <div>
+                        <div class="mb-2">${statusBadge} <span class="text-xs text-slate-400 ml-2">ID: ${step.id}</span></div>
+                        <h2 class="text-2xl font-bold text-enterprise-900 tracking-tight mb-1">${step.title}</h2>
+                        <p class="text-slate-500 text-sm font-medium">${step.description}</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto pr-2 pb-20 animate-[fadeIn_0.3s_ease-out]">
+            `;
+
+            // 0.1 REQUIRED DOCUMENTS
+            html += `
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5 shadow-sm">
+                    <h3 class="text-sm font-bold text-amber-800 mb-3 flex items-center"><i class="fa-regular fa-file-lines text-amber-600 mr-2"></i> Gerekli Belgeler</h3>
+                    <textarea onblur="updateStepField(${step.id}, 'requiredDocuments', this.value)" 
+                        class="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm text-amber-700 bg-white focus:ring-amber-400 focus:border-amber-400 resize-y" 
+                        rows="3" placeholder="Bu adım için gerekli belgeleri yazın..." ${isReadOnly ? 'disabled' : ''}>${step.requiredDocuments || ''}</textarea>
+                </div>
+            `;
+
+            // 0.2 REQUIRED INFORMATION
+            html += `
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5 shadow-sm">
+                    <h3 class="text-sm font-bold text-blue-800 mb-3 flex items-center"><i class="fa-solid fa-circle-info text-blue-600 mr-2"></i> Gerekli Bilgiler</h3>
+                    <textarea onblur="updateStepField(${step.id}, 'requiredInformation', this.value)" 
+                        class="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm text-blue-700 bg-white focus:ring-blue-400 focus:border-blue-400 resize-y" 
+                        rows="3" placeholder="Bu adım için gerekli bilgileri yazın..." ${isReadOnly ? 'disabled' : ''}>${step.requiredInformation || ''}</textarea>
+                </div>
+            `;
+
+            // 0.3 GENERAL NOTES SECTION
+            html += `
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mb-5 shadow-sm">
+                    <h3 class="text-sm font-bold text-indigo-800 mb-3 flex items-center"><i class="fa-solid fa-pen-to-square text-indigo-600 mr-2"></i> Adım Genel Notları</h3>
+            `;
+
+            if (step.generalNotes && step.generalNotes.length > 0) {
+                html += `<div class="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1" style="scrollbar-width: thin;">`;
+                step.generalNotes.forEach(note => {
+                    const dateInfo = note.date ? `Tarih: ${note.date.split('-').reverse().join('.')}` : '';
+                    html += `
+                        <div class="p-3 border border-indigo-200 rounded-lg bg-white shadow-sm relative group">
+                            ${!isReadOnly ? `<button onclick="deleteGeneralNote(${step.id}, '${note.id}')" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Notu Sil"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                            <div class="flex items-center gap-3 mb-1.5 border-b border-indigo-50 pb-1.5">
+                                <h4 class="font-bold text-indigo-700 text-[13px] pr-6"><i class="fa-regular fa-user mr-1.5 opacity-70"></i>${escapeHTML(note.person)}</h4>
+                                ${dateInfo ? `<span class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100"><i class="fa-regular fa-calendar mr-1"></i>${dateInfo}</span>` : ''}
+                            </div>
+                            <p class="text-[13px] text-slate-700 leading-relaxed whitespace-pre-wrap mt-2">${escapeHTML(note.text)}</p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            } else if (isReadOnly) {
+                html += `<p class="text-sm text-slate-500 italic px-2">Bu adım için kaydedilmiş genel not bulunmamaktadır.</p>`;
+            }
+
+            if (!isReadOnly) {
+                html += `
+                    <div class="bg-white border border-indigo-100 rounded-xl p-4 shadow-sm">
+                        <p class="text-[11px] font-bold text-indigo-500 mb-3 uppercase tracking-wide flex items-center"><i class="fa-solid fa-plus-circle mr-1.5"></i> Yeni Genel Not Ekle</p>
+                        <div class="flex flex-col md:flex-row gap-2 mb-2">
+                            <input type="text" id="gnote-person" placeholder="Notu Yazan Kişi (Zorunlu)" class="flex-1 border border-indigo-200 rounded px-3 py-1.5 text-[13px] focus:ring-1 focus:ring-indigo-500 outline-none placeholder-slate-400">
+                            <div class="flex items-center gap-2 border border-indigo-200 rounded px-2.5 bg-white md:w-36 hover:border-indigo-300 transition-colors">
+                                <i class="fa-regular fa-calendar-check mr-1 text-indigo-400 text-[10px]"></i>
+                                <input type="date" id="gnote-date" class="w-full py-1 text-xs focus:outline-none bg-transparent appearance-none text-slate-700">
+                            </div>
+                        </div>
+                        <textarea id="gnote-text" placeholder="Genel durum/çalışma notlarınızı buraya yazın..." rows="3" class="w-full border border-indigo-200 rounded p-3 text-[13px] mb-3 focus:ring-1 focus:ring-indigo-500 outline-none resize-y text-slate-700 placeholder-slate-400"></textarea>
+                        <button onclick="addGeneralNote(${step.id})" class="w-full bg-indigo-100 hover:bg-indigo-600 hover:text-white hover:shadow-md text-indigo-700 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center border border-indigo-200">
+                            <i class="fa-solid fa-save mr-2"></i> Forma Girilen Notu Sisteme Kaydet
+                        </button>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+
+            // 1. CHECKLIST SECTION
+            html += `
+                <div class="bg-white border border-slate-200 rounded-xl p-5 mb-5 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-list-check text-brand-500 mr-2"></i> Adım Kontrol Listesi (Checklist)</h3>
+                    <div class="space-y-2">
+            `;
+
+            if (step.checklist && step.checklist.length > 0) {
+                step.checklist.forEach(item => {
+                    html += `
+                        <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100 group">
+                            <input type="checkbox" ${item.done ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} onchange="toggleChecklist(${step.id}, '${item.id}', this.checked)" class="mt-1 w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500 disabled:opacity-50">
+                            <span class="text-sm ${item.done ? 'text-slate-400 line-through' : 'text-slate-700 font-medium'} selection:bg-brand-100">${item.text}</span>
+                        </label>
+                    `;
+                });
+            } else {
+                html += `<p class="text-sm text-slate-500 italic px-2">Bu adım için tanımlı görev bulunamadı.</p>`;
+            }
+            html += `</div></div>`;
+
+            // 2. NOTES SECTION
+            html += `
+                <div class="bg-white border border-slate-200 rounded-xl p-5 mb-5 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-user-tie text-orange-500 mr-2"></i> Görüşme ve İşlem Notları</h3>
+            `;
+
+            // List existing notes
+            if (step.meetingNotes && step.meetingNotes.length > 0) {
+                html += `<div class="space-y-3 mb-4 max-h-80 overflow-y-auto pr-1" style="scrollbar-width: thin;">`;
+                step.meetingNotes.forEach(note => {
+                    const displayTitle = note.company || note.person || "İsimsiz Not";
+                    const displaySub = note.company ? note.person : '';
+                    const dateInfo = note.date ? `Tarih: ${note.date.split('-').reverse().join('.')}` : '';
+
+                    html += `
+                        <div class="p-4 border border-orange-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-all relative group">
+                            <!-- Delete button -->
+                            ${!isReadOnly ? `<button onclick="deleteMeetingNote(${step.id}, '${note.id}')" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                            
+                            <div class="flex items-center gap-3 mb-2">
+                                <h4 class="font-bold text-orange-700 text-sm pr-6"><i class="fa-regular fa-comments mr-1.5 opacity-70"></i>${escapeHTML(displayTitle)}</h4>
+                                ${displaySub ? `<span class="text-[11px] text-slate-500 font-medium">${escapeHTML(displaySub)}</span>` : ''}
+                                ${dateInfo ? `<span class="text-[10px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded">${dateInfo}</span>` : ''}
+                            </div>
+                            
+                            <!-- Note Text - full display -->
+                            <p class="text-[13px] text-slate-700 border-t border-slate-100 pt-2 leading-relaxed whitespace-pre-wrap">
+                                ${escapeHTML(note.text)}
+                            </p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            } else if (isReadOnly) {
+                html += `<p class="text-sm text-slate-500 italic px-2">Bu adım için tanımlı not/görüşme kaydı bulunmamaktadır.</p>`;
+            }
+
+            // New Note Form
+            if (!isReadOnly) {
+                html += `
+                    <div class="bg-slate-50/50 border border-slate-200 rounded-lg p-3">
+                        <p class="text-xs font-bold text-slate-600 mb-2 flex items-center"><i class="fa-solid fa-plus-circle mr-1.5 text-orange-500"></i> Yeni Not/Görüşme Ekle</p>
+                        
+                        <!-- Row 1: Person and Date -->
+                        <div class="flex flex-col md:flex-row gap-2 mb-2">
+                            <input type="text" id="note-company" placeholder="Firma / Kurum Adı" class="flex-1 border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-orange-500 outline-none">
+                            <input type="text" id="note-person" placeholder="İlgili Kişi" class="flex-1 border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-orange-500 outline-none">
+                            <div class="flex items-center gap-2 border border-slate-300 rounded px-2.5 bg-white flex-1 hover:border-orange-300 transition-colors">
+                                <span class="text-[10px] text-slate-500 font-medium whitespace-nowrap"><i class="fa-regular fa-calendar-check mr-1"></i> Tarih</span>
+                                <input type="date" id="note-date" class="w-full py-1 text-xs focus:outline-none bg-transparent appearance-none">
+                            </div>
+                        </div>
+
+                        <!-- Row 5: Text Area -->
+                        <textarea id="note-text" placeholder="Görüşme detayları veya işlem notlarınızı buraya yazın..." rows="3" class="w-full border border-slate-300 rounded p-2.5 text-[13px] mb-2 focus:ring-1 focus:ring-orange-500 outline-none resize-y"></textarea>
+                        
+                        <!-- Submit -->
+                        <button onclick="addMeetingNote(${step.id})" class="w-full bg-orange-100 hover:bg-orange-600 hover:text-white hover:shadow-md text-orange-700 border border-orange-200 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center">
+                            <i class="fa-solid fa-save mr-2"></i> Forma Girilen Notu Kaydet
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Old simple textarea functionality fallback (Optional but kept for backwards compatibility with any other raw notes use cases, commented out since user wants advanced notes)
+            // If they want both, we keep it. Given the request, the advanced system replaces the simple one.
+
+            html += `</div>`;
+
+            // 3. DOCUMENT TRACKING SECTION
+            html += `
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mb-5">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-file-lines text-amber-500 mr-2"></i> İlgili Evrak / Belge Kayıtları</h3>
+                    
+                    ${!isReadOnly ? `
+                    <!-- DRAG DROP ZONE -->
+                    <div 
+                        ondragover="handleDragOver(event)" 
+                        ondragleave="handleDragLeave(event)" 
+                        ondrop="handleDrop(event, ${step.id})"
+                        class="mb-4 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl p-6 text-center transition-colors cursor-pointer group flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2 group-hover:text-amber-500 transition-colors"></i>
+                        <p class="text-xs font-bold text-slate-600 mb-1">Dosyaları Buraya Sürükleyin (Çoklu Seçim Açık)</p>
+                        <p class="text-[10px] text-slate-500">Sadece dosya isimleri ve formatları sisteme işlenecektir.</p>
+                    </div>
+
+                    <!-- MANUAL INPUT ZONE -->
+                    <div class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 items-start">
+                        <div class="flex-1">
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="new-doc-name" placeholder="Belge Adı (Örn: Makine Listesi)" class="flex-1 border border-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                <select id="new-doc-ext" class="w-24 border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-semibold bg-white">
+                                    <option value="PDF">PDF</option>
+                                    <option value="DOCX">DOCX</option>
+                                    <option value="XLSX">XLSX</option>
+                                    <option value="XML">XML</option>
+                                    <option value="ZIP">ZIP</option>
+                                    <option value="DİĞER">DİĞER</option>
+                                </select>
+                            </div>
+                            <input type="text" id="new-doc-note" placeholder="Belge hakkında açıklama veya durum durumu (İsteğe bağlı)" class="w-full border border-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        </div>
+                        <button onclick="addDocument(${step.id})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 px-3 py-2 rounded-md text-xs font-bold transition-colors whitespace-nowrap h-full flex flex-col justify-center items-center h-[72px]">
+                            <i class="fa-solid fa-plus mb-1 text-sm"></i> Ekle
+                        </button>
+                    </div>
+                    ` : ''}
+
+                    <div class="border border-slate-200 rounded-lg overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600 min-w-[600px]">
+                            <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-2 w-1/3 border-r border-slate-200">Belge Adı</th>
+                                    <th class="px-3 py-2 w-16 border-r border-slate-200 text-center">Format</th>
+                                    <th class="px-4 py-2 border-r border-slate-200">Açıklama / Durum</th>
+                                    <th class="px-4 py-2 w-24 border-r border-slate-200 text-center">Tarih</th>
+                                    ${!isReadOnly ? '<th class="px-2 py-2 w-10 text-center"></th>' : ''}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${step.documents && step.documents.length > 0 ? step.documents.map(doc => {
+                let iconHtml = '<i class="fa-regular fa-file text-slate-400 mr-2"></i>';
+                if (doc.ext === 'PDF') iconHtml = '<i class="fa-regular fa-file-pdf text-red-400 mr-2"></i>';
+                else if (doc.ext === 'DOCX' || doc.ext === 'DOC') iconHtml = '<i class="fa-regular fa-file-word text-blue-500 mr-2"></i>';
+                else if (doc.ext === 'XLSX' || doc.ext === 'XLS') iconHtml = '<i class="fa-regular fa-file-excel text-emerald-500 mr-2"></i>';
+                else if (doc.ext === 'XML') iconHtml = '<i class="fa-regular fa-file-code text-orange-400 mr-2"></i>';
+                else if (doc.ext === 'ZIP') iconHtml = '<i class="fa-regular fa-file-zipper text-purple-500 mr-2"></i>';
+
+                return `
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        <td class="px-4 py-2.5 font-medium text-slate-700 border-r border-slate-100">
+                                            ${iconHtml}${doc.name}
+                                        </td>
+                                        <td class="px-3 py-2.5 text-[10px] font-bold text-center border-r border-slate-100">
+                                            <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">${doc.ext || 'DİĞER'}</span>
+                                        </td>
+                                        <td class="px-4 py-2.5 text-xs text-slate-500 border-r border-slate-100">${doc.note}</td>
+                                        <td class="px-4 py-2.5 text-xs text-center border-r border-slate-100">${doc.dateAdded}</td>
+                                        ${!isReadOnly ? `
+                                        <td class="px-2 py-2.5 text-center">
+                                            <button onclick="deleteDocument(${step.id}, '${doc.id}')" class="text-slate-400 hover:text-red-500 transition-colors" title="Kaydı Sil">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </td>
+                                        ` : ''}
+                                    </tr>
+                                `}).join('') : `
+                                    <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400 text-xs italic bg-slate-50/50">Bu adım için tanımlanmış evrak kaydı bulunmamaktadır.</td></tr>
+                                `}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            html += `</div>`; // End scrollable area
+
+            // FINISH BUTTON ACTION AREA (Fixed at bottom)
+            if (step.status === 'active') {
+                html += `
+                    <div class="pt-4 border-t border-slate-200 shrink-0 mt-2 bg-white flex justify-between items-center">
+                        <p class="text-xs text-slate-500"><i class="fa-solid fa-circle-info mr-1"></i> Tüm işlemleri tamamladığınızda sağdaki butondan onaylayın.</p>
+                        <button onclick="handleCompleteStep(${step.id})" class="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all transform active:scale-95 flex items-center shadow-emerald-600/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                            <i class="fa-solid fa-flag-checkered mr-2"></i> Aşamayı Tamamla ve Kilitle
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function updateUI() {
+            try {
+                renderProjectSelector();
+                loadDashboardInfo();
+                renderTimeline();
+                renderDetailPanel();
+            } catch (error) {
+                console.error("UI Güncelleme Hatası:", error);
+                showToast("Arayüz güncellenirken bir hata oluştu: " + error.message, "error");
+            }
+        }
+
+        // Add tailwind keyframes for animations
+        tailwind.config.theme.extend.keyframes = {
+            fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+        }
+
+        // Prevent browser from opening dragged files globally, but allow the dropzone to work
+        window.addEventListener('dragover', e => {
+            e.preventDefault();
+        });
+        window.addEventListener('drop', e => {
+            e.preventDefault();
+        });
+
+        // Admin Panel Settings Logic
+        function openAdminPanel() {
+            const p = getActiveProject();
+            if (!p) {
+                showToast("Lütfen önce bir proje seçin veya oluşturun.", "error");
+                return;
+            }
+
+            const projectNameDiv = document.getElementById('admin-active-project-name');
+            if (projectNameDiv) {
+                projectNameDiv.textContent = p.name;
+            }
+
+            renderAdminSteps();
+
+            const modal = document.getElementById('admin-panel-modal');
+            const content = document.getElementById('admin-modal-content-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeAdminPanel() {
+            const modal = document.getElementById('admin-panel-modal');
+            const content = document.getElementById('admin-modal-content-box');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function renderAdminSteps() {
+            const container = document.getElementById('admin-modal-body');
+            const p = getActiveProject();
+            if (!p || !p.steps) return;
+            const steps = p.steps;
+
+            let html = '<div class="space-y-6" id="admin-steps-list">';
+            steps.forEach((step, stepIndex) => {
+                html += `
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm admin-step-block relative group" data-step-id="${step.id}">
+                        <button onclick="removeAdminStep(${step.id})" class="absolute top-4 right-4 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2">
+                            <i class="fa-solid fa-trash-can mr-1"></i> Adımı Sil
+                        </button>
+
+                        <div class="flex items-center gap-3 mb-4 border-b border-slate-100 pb-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm admin-step-index">${step.id}</div>
+                            <h4 class="font-bold text-slate-700">Adım ${step.id} Ayarları</h4>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Adım Başlığı</label>
+                                <input type="text" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-title" value="${step.title}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Kısa Açıklama</label>
+                                <input type="text" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-desc" value="${step.description}">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Detaylı Bilgi Metni</label>
+                            <textarea class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-detail" rows="2">${step.detail}</textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Gerekli Belgeler</label>
+                                <textarea class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-req-docs" rows="3">${step.requiredDocuments || ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Gerekli Bilgiler</label>
+                                <textarea class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-req-info" rows="3">${step.requiredInformation || ''}</textarea>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2 border-b border-slate-100 pb-1">Kontrol Listesi (Checklist) Görevleri</label>
+                            <div class="space-y-2 checklist-container-${step.id}">
+                `;
+
+                step.checklist.forEach((item, index) => {
+                    html += `
+                                <div class="flex gap-2 items-center checklist-item-row">
+                                    <input type="text" class="flex-1 border border-slate-300 rounded px-2 py-1 text-xs focus:ring-blue-500 admin-input-checklist" value="${item.text}">
+                                    <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                                </div>
+                    `;
+                });
+
+                html += `
+                            </div>
+                            <button onclick="addAdminChecklistItem(${step.id})" class="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800"><i class="fa-solid fa-plus mr-1"></i> Yeni Görev Ekle</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function addAdminStep() {
+            const container = document.getElementById('admin-steps-list');
+            const blocks = document.querySelectorAll('.admin-step-block');
+            const newId = blocks.length + 1;
+
+            const div = document.createElement('div');
+            div.className = "bg-white p-5 rounded-xl border border-slate-200 shadow-sm admin-step-block relative group";
+            div.setAttribute('data-step-id', newId);
+            div.innerHTML = `
+                <button onclick="removeAdminStep(${newId})" class="absolute top-4 right-4 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Adımı Sil
+                </button>
+                <div class="flex items-center gap-3 mb-4 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm admin-step-index">${newId}</div>
+                    <h4 class="font-bold text-slate-700">Adım ${newId} Ayarları</h4>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Adım Başlığı</label>
+                        <input type="text" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-title" value="Yeni Adım">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Kısa Açıklama</label>
+                        <input type="text" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-desc" value="Açıklama giriniz.">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Detaylı Bilgi Metni</label>
+                    <textarea class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-detail" rows="2"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Gerekli Belgeler</label>
+                        <textarea class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-req-docs" rows="3"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Gerekli Bilgiler</label>
+                        <textarea class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-blue-500 admin-input-req-info" rows="3"></textarea>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2 border-b border-slate-100 pb-1">Kontrol Listesi (Checklist) Görevleri</label>
+                    <div class="space-y-2 checklist-container-${newId}"></div>
+                    <button onclick="addAdminChecklistItem(${newId})" class="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800"><i class="fa-solid fa-plus mr-1"></i> Yeni Görev Ekle</button>
+                </div>
+            `;
+            container.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function removeAdminStep(stepId) {
+            const block = document.querySelector(`.admin-step-block[data-step-id="${stepId}"]`);
+            if (block) {
+                block.remove();
+                // Re-index remaining steps
+                const blocks = document.querySelectorAll('.admin-step-block');
+                blocks.forEach((b, i) => {
+                    const newId = i + 1;
+                    b.setAttribute('data-step-id', newId);
+                    b.querySelector('.admin-step-index').textContent = newId;
+                    b.querySelector('h4').textContent = `Adım ${newId} Ayarları`;
+                    // Update checklist container class
+                    const checklistContainer = b.querySelector('[class^="space-y-2 checklist-container-"]');
+                    if (checklistContainer) {
+                        checklistContainer.className = `space-y-2 checklist-container-${newId}`;
+                    }
+                    // Update buttons
+                    const addCheckItemBtn = b.querySelector('button[onclick^="addAdminChecklistItem"]');
+                    if (addCheckItemBtn) addCheckItemBtn.setAttribute('onclick', `addAdminChecklistItem(${newId})`);
+                    const removeStepBtn = b.querySelector('button[onclick^="removeAdminStep"]');
+                    if (removeStepBtn) removeStepBtn.setAttribute('onclick', `removeAdminStep(${newId})`);
+                });
+            }
+        }
+
+        function addAdminChecklistItem(stepId) {
+            const container = document.querySelector(`.checklist-container-${stepId}`);
+            if (container) {
+                const div = document.createElement('div');
+                div.className = "flex gap-2 items-center checklist-item-row";
+                div.innerHTML = `
+                    <input type="text" class="flex-1 border border-slate-300 rounded px-2 py-1 text-xs focus:ring-blue-500 admin-input-checklist" placeholder="Yeni görev..." value="">
+                    <button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(div);
+                const input = div.querySelector('input');
+                if (input) input.focus();
+            }
+        }
+
+        function saveAdminSettings() {
+            try {
+                const p = getActiveProject();
+                if (!p) return;
+
+                const blocks = document.querySelectorAll('.admin-step-block');
+                const newSteps = [];
+
+                blocks.forEach((block, index) => {
+                    const stepId = index + 1; // Standardize ID to 1-based index
+
+                    // Maintain existing step properties where applicable
+                    const existingStep = p.steps.find(s => s.id === stepId) || {};
+
+                    const step = {
+                        id: stepId,
+                        title: block.querySelector('.admin-input-title').value,
+                        description: block.querySelector('.admin-input-desc').value,
+                        detail: block.querySelector('.admin-input-detail').value,
+                        requiredDocuments: block.querySelector('.admin-input-req-docs').value,
+                        requiredInformation: block.querySelector('.admin-input-req-info').value,
+                        status: existingStep.status || (stepId === 1 ? "active" : "locked"),
+                        date: existingStep.date || "-",
+                        icon: existingStep.icon || (stepId === blocks.length ? "fa-solid fa-flag-checkered" : "fa-solid fa-clipboard-list"),
+                        notes: existingStep.notes || "",
+                        meetingNotes: existingStep.meetingNotes || [],
+                        documents: existingStep.documents || []
+                    };
+
+                    if (existingStep.invoiceData !== undefined) {
+                        step.invoiceData = existingStep.invoiceData;
+                    }
+
+                    const checklistInputs = block.querySelectorAll('.admin-input-checklist');
+                    step.checklist = Array.from(checklistInputs).filter(input => input.value.trim() !== '').map((input, i) => {
+                        const newText = input.value.trim();
+                        const oldCheck = (existingStep.checklist || []).find(c => c.text === newText);
+                        return { id: `c${step.id}-${i + 1}`, text: newText, done: oldCheck ? oldCheck.done : false };
+                    });
+
+                    newSteps.push(step);
+                });
+
+                // Modify purely the current active project
+                p.steps = newSteps;
+
+                saveToLocalStorage();
+                closeAdminPanel();
+                updateUI(); // Re-render immediately
+                showToast(`[${p.name}] proje adım ayarları başarıyla kaydedildi.`, "success");
+            } catch (error) {
+                console.error("Admin Ayarları Kayıt Hatası:", error);
+                showToast("Ayarlar kaydedilirken bir hata oluştu: " + error.message, "error");
+            }
+        }
+
+        function saveAsProcessTemplate() {
+            try {
+                const p = getActiveProject();
+                if (!p) return;
+
+                const blocks = document.querySelectorAll('.admin-step-block');
+                const newSteps = [];
+
+                blocks.forEach((block, index) => {
+                    const stepId = index + 1;
+
+                    const existingStep = p.steps.find(s => s.id === stepId) || {};
+
+                    const step = {
+                        id: stepId,
+                        title: block.querySelector('.admin-input-title').value,
+                        description: block.querySelector('.admin-input-desc').value,
+                        detail: block.querySelector('.admin-input-detail').value,
+                        requiredDocuments: block.querySelector('.admin-input-req-docs').value,
+                        requiredInformation: block.querySelector('.admin-input-req-info').value,
+                        status: existingStep.status || (stepId === 1 ? "active" : "locked"),
+                        date: "-", // Keep template dates blank
+                        icon: existingStep.icon || (stepId === blocks.length ? "fa-solid fa-flag-checkered" : "fa-solid fa-clipboard-list"),
+                        notes: "", // Reset template notes
+                        meetingNotes: [],
+                        documents: []
+                    };
+
+                    const checklistInputs = block.querySelectorAll('.admin-input-checklist');
+                    step.checklist = Array.from(checklistInputs).filter(input => input.value.trim() !== '').map((input, i) => {
+                        return { id: `c${step.id}-${i + 1}`, text: input.value.trim(), done: false }; // Template checklists are not done
+                    });
+
+                    newSteps.push(step);
+                });
+
+                if (!systemSettings.processTemplates) systemSettings.processTemplates = {};
+
+                // Get original name/color/icon if it exists
+                let baseName = p.processType;
+                let baseIcon = "fa-solid fa-layer-group";
+                let baseColor = "brand";
+
+                if (PROCESS_TEMPLATES[p.processType]) {
+                    baseName = PROCESS_TEMPLATES[p.processType].name;
+                    baseIcon = PROCESS_TEMPLATES[p.processType].icon;
+                    baseColor = PROCESS_TEMPLATES[p.processType].color;
+                } else if (systemSettings.processTemplates[p.processType]) {
+                    baseName = systemSettings.processTemplates[p.processType].name;
+                    baseIcon = systemSettings.processTemplates[p.processType].icon || baseIcon;
+                    baseColor = systemSettings.processTemplates[p.processType].color || baseColor;
+                }
+
+                // Save to system settings as an override/new template
+                systemSettings.processTemplates[p.processType] = {
+                    name: baseName,
+                    icon: baseIcon,
+                    color: baseColor,
+                    steps: newSteps,
+                    isCustomProcessType: !PROCESS_TEMPLATES[p.processType]
+                };
+
+                // Modify purely the current active project too so they don't lose progress on this one
+                p.steps = newSteps;
+
+                saveToLocalStorage();
+                closeAdminPanel();
+                updateUI(); // Re-render immediately
+                showToast(`[${baseName}] şablonu tüm yeni projeler için varsayılan olarak güncellendi!`, "success");
+            } catch (error) {
+                console.error("Şablon Kayıt Hatası:", error);
+                showToast("Şablon kaydedilirken bir hata oluştu: " + error.message, "error");
+            }
+        }
+
+        // --- DATA BACKUP & RESTORE LOGIC ---
+        function exportDataToFile() {
+            fbDB.ref('MajeTakipData').once('value').then(snapshot => {
+                const dataStr = JSON.stringify(snapshot.val() || {});
+                if (dataStr === "{}" || !dataStr) {
+                    showToast("Dışa aktarılacak veri bulunamadı.", "error");
+                    return;
+                }
+
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+
+                const dateStr = new Date().toISOString().split('T')[0];
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MAJE_YEDEK_${dateStr}.json`;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast("Veri yedeği başarıyla Firebase'den bilgisayarınıza indirildi.", "success");
+            }).catch(err => {
+                showToast("Yedek alınırken sunucu hatası: " + err, "error");
+            });
+        }
+
+        function importDataFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Reset input value to allow selecting same file again if needed
+            event.target.value = '';
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const contents = e.target.result;
+                    // Validate JSON
+                    const parsed = JSON.parse(contents);
+
+                    if (!parsed || typeof parsed !== 'object' || !parsed.projects) {
+                        throw new Error("Geçersiz yedek dosyası formatı.");
+                    }
+
+                    if (confirm("DİKKAT! Yükleyeceğiniz yedek, FİREBASE'DEKİ MEVCUT TÜM VERİLERİN ÜZERİNE YAZACAKTIR. İşlemi onaylıyor musunuz?")) {
+                        // Yedeği Firebase'e Pushla
+                        fbDB.ref('MajeTakipData').set(parsed).then(() => {
+                            showToast("Veriler başarıyla buluta geri yüklendi. Tüm ekranlar senkronize ediliyor...", "success");
+                            closeAdminPanel();
+                        }).catch(err => {
+                            showToast("Veriler Firebase'e yüklenirken hata oluştu: " + err, "error");
+                        });
+                    } else {
+                        showToast("Geri yükleme işlemi iptal edildi.", "info");
+                    }
+                } catch (err) {
+                    console.error("Import Error:", err);
+                    showToast("Dosya okunamadı veya hatalı format! Lütfen doğru bir .json seçtiğinizden emin olun.", "error");
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        // --- AUTH LOGIC ---
+        function handleLogin(event) {
+            event.preventDefault(); // Prevent page reload
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !pass) return;
+
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Kontrol Ediliyor...`;
+            btn.disabled = true;
+
+            fbAuth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    // Success is handled by onAuthStateChanged listener below
+                    showToast("Giriş başarılı! Yönlendiriliyorsunuz...", "success");
+                })
+                .catch((error) => {
+                    console.error("Login Error:", error.code, error.message);
+                    btn.innerHTML = `Giriş Yap <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>`;
+                    btn.disabled = false;
+
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        showToast("E-posta adresiniz veya şifreniz hatalı.", "error");
+                    } else if (error.code === 'auth/too-many-requests') {
+                        showToast("Çok fazla hatalı deneme! Lütfen daha sonra tekrar deneyin.", "error");
+                    } else {
+                        showToast("Giriş yapılamadı: " + error.message, "error");
+                    }
+                });
+        }
+
+        function handleLogout() {
+            fbAuth.signOut().then(() => {
+                showToast("Güvenli bir şekilde çıkış yapıldı.", "info");
+                // Ekranın tam yenilenmesi (Sıfır risk ile şifre ekranına atar)
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            }).catch((error) => {
+                showToast("Çıkış yapılırken bir hata oluştu.", "error");
+            });
+        }
+
+        // INITIALIZE APP BASED ON AUTH STATE
+        window.addEventListener('DOMContentLoaded', () => {
+            const loginOverlay = document.getElementById('login-overlay');
+            const mainApp = document.getElementById('main-app');
+
+            // Listen indefinitely to user Auth state
+            fbAuth.onAuthStateChanged((user) => {
+                if (user) {
+                    console.log("Logged in as:", user.email);
+                    // Hide login, reveal app
+                    loginOverlay.classList.add('hidden');
+
+                    mainApp.classList.remove('opacity-0', 'pointer-events-none');
+                    mainApp.classList.add('opacity-100', 'pointer-events-auto');
+
+                    // Now that we are authenticated, fetch data
+                    loadFromLocalStorage();
+                } else {
+                    console.log("Not logged in");
+                    // Stop listening to DB if we were previously logged in
+                    if (dbSubscription) {
+                        dbSubscription.off();
+                        dbSubscription = null;
+                    }
+
+                    // Reset UI State completely
+                    document.getElementById('login-email').value = '';
+                    document.getElementById('login-password').value = '';
+                    const btn = document.getElementById('login-btn');
+                    btn.innerHTML = `Giriş Yap <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>`;
+                    btn.disabled = false;
+
+                    mainApp.classList.add('opacity-0', 'pointer-events-none');
+                    mainApp.classList.remove('opacity-100', 'pointer-events-auto');
+
+                    loginOverlay.classList.remove('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
