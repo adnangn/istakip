@@ -221,9 +221,9 @@
                     </select>
 
                     <button onclick="toggleFavoriteProject()"
-                        class="px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm"
+                        class="h-9 w-9 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm hover:bg-amber-100 transition-colors shadow-sm flex items-center justify-center"
                         id="favorite-toggle-btn" title="Projeyi favorilere sabitle">
-                        <i class="fa-regular fa-star mr-1"></i> Yıldızla
+                        <i class="fa-regular fa-star"></i>
                     </button>
 
                     <select id="project-status-selector" onchange="updateActiveProjectStatus(this.value)"
@@ -235,9 +235,9 @@
                     </select>
 
                     <button onclick="toggleArchiveProject()"
-                        class="px-3 py-2 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors shadow-sm"
+                        class="h-9 w-9 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-200 transition-colors shadow-sm flex items-center justify-center"
                         id="archive-toggle-btn" title="Projeyi arşive al veya geri çıkar">
-                        <i class="fa-solid fa-box-archive mr-1"></i> Arşive Al
+                        <i class="fa-solid fa-box-archive"></i>
                     </button>
 
                     <div class="flex items-center gap-2 flex-wrap">
@@ -301,28 +301,34 @@
                 <p class="text-[11px] text-slate-500 mt-2">Firma adı + belge no + süreç tipi seçimi ile hızlı filtreleme yapabilirsiniz.</p>
             </div>
 
-            <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-xs font-bold text-amber-800 uppercase tracking-wide">
-                            <i class="fa-solid fa-star mr-1"></i> Favori Projeler
-                        </p>
-                    </div>
-                    <div id="favorite-projects-container" class="flex flex-wrap gap-2">
-                        <!-- Favorite project quick buttons -->
+            <div class="mt-3 flex items-start justify-end gap-2">
+                <div class="relative">
+                    <button onclick="toggleFavoritePanel()" id="favorite-panel-toggle"
+                        class="relative h-9 w-9 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm hover:bg-amber-100 transition-colors shadow-sm flex items-center justify-center"
+                        title="Favori projeler">
+                        <i class="fa-solid fa-star"></i>
+                        <span id="favorite-count-badge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-[18px] text-center border border-white shadow">0</span>
+                    </button>
+                    <div id="favorite-panel"
+                        class="hidden absolute right-0 mt-2 w-80 max-w-[90vw] bg-amber-50 border border-amber-200 rounded-xl p-3 shadow-lg z-30">
+                        <div id="favorite-projects-container" class="flex flex-wrap gap-2 max-h-56 overflow-y-auto">
+                            <!-- Favorite project quick buttons -->
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-slate-100 border border-slate-200 rounded-xl p-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                            <i class="fa-solid fa-box-archive mr-1"></i> Arşiv Alanı
-                        </p>
-                        <button onclick="toggleArchivePanel()" id="archive-panel-toggle"
-                            class="text-[11px] font-bold text-slate-600 hover:text-slate-800">Göster/Gizle</button>
-                    </div>
-                    <div id="archive-projects-container" class="hidden flex flex-wrap gap-2">
-                        <!-- Archived project quick buttons -->
+                <div class="relative">
+                    <button onclick="toggleArchivePanel()" id="archive-panel-toggle"
+                        class="relative h-9 w-9 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-200 transition-colors shadow-sm flex items-center justify-center"
+                        title="Arşiv projeleri">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span id="archive-count-badge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-600 text-white text-[10px] font-bold leading-[18px] text-center border border-white shadow">0</span>
+                    </button>
+                    <div id="archive-panel"
+                        class="hidden absolute right-0 mt-2 w-80 max-w-[90vw] bg-white border border-slate-200 rounded-xl p-3 shadow-lg z-30">
+                        <div id="archive-projects-container" class="flex flex-wrap gap-2 max-h-56 overflow-y-auto">
+                            <!-- Archived project quick buttons -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1234,10 +1240,20 @@
             panel.classList.toggle('hidden');
         }
 
+        function toggleFavoritePanel() {
+            const favoritePanel = document.getElementById('favorite-panel');
+            const archivePanel = document.getElementById('archive-panel');
+            if (!favoritePanel) return;
+            favoritePanel.classList.toggle('hidden');
+            if (archivePanel && !favoritePanel.classList.contains('hidden')) archivePanel.classList.add('hidden');
+        }
+
         function toggleArchivePanel() {
-            const panel = document.getElementById('archive-projects-container');
-            if (!panel) return;
-            panel.classList.toggle('hidden');
+            const archivePanel = document.getElementById('archive-panel');
+            const favoritePanel = document.getElementById('favorite-panel');
+            if (!archivePanel) return;
+            archivePanel.classList.toggle('hidden');
+            if (favoritePanel && !archivePanel.classList.contains('hidden')) favoritePanel.classList.add('hidden');
         }
 
         function toggleCompletionSortMode() {
@@ -1307,9 +1323,23 @@
         function renderQuickProjectPanels() {
             const favoriteContainer = document.getElementById('favorite-projects-container');
             const archiveContainer = document.getElementById('archive-projects-container');
+            const favoriteBadge = document.getElementById('favorite-count-badge');
+            const archiveBadge = document.getElementById('archive-count-badge');
+
+            const favorites = Object.values(projects).filter(p => p.isFavorite && !p.archived);
+            const archivedProjects = Object.values(projects).filter(p => p.archived);
+
+            if (favoriteBadge) {
+                favoriteBadge.textContent = String(favorites.length);
+                favoriteBadge.classList.toggle('hidden', favorites.length === 0);
+            }
+
+            if (archiveBadge) {
+                archiveBadge.textContent = String(archivedProjects.length);
+                archiveBadge.classList.toggle('hidden', archivedProjects.length === 0);
+            }
 
             if (favoriteContainer) {
-                const favorites = Object.values(projects).filter(p => p.isFavorite && !p.archived);
                 if (favorites.length === 0) {
                     favoriteContainer.innerHTML = '<span class="text-[11px] text-amber-700/80">Favori proje yok.</span>';
                 } else {
@@ -1322,7 +1352,6 @@
             }
 
             if (archiveContainer) {
-                const archivedProjects = Object.values(projects).filter(p => p.archived);
                 if (archivedProjects.length === 0) {
                     archiveContainer.innerHTML = '<span class="text-[11px] text-slate-500">Arsiv bos.</span>';
                 } else {
@@ -1351,11 +1380,13 @@
             if (!p) {
                 if (favoriteBtn) {
                     favoriteBtn.disabled = true;
-                    favoriteBtn.innerHTML = '<i class="fa-regular fa-star mr-1"></i> Yildizla';
+                    favoriteBtn.innerHTML = '<i class="fa-regular fa-star"></i>';
+                    favoriteBtn.title = 'Projeyi favorilere sabitle';
                 }
                 if (archiveBtn) {
                     archiveBtn.disabled = true;
-                    archiveBtn.innerHTML = '<i class="fa-solid fa-box-archive mr-1"></i> Arsive Al';
+                    archiveBtn.innerHTML = '<i class="fa-solid fa-box-archive"></i>';
+                    archiveBtn.title = 'Projeyi arsive al veya geri cikar';
                 }
                 if (statusSelect) statusSelect.value = 'Bekliyor';
                 return;
@@ -1364,15 +1395,17 @@
             if (favoriteBtn) {
                 favoriteBtn.disabled = false;
                 favoriteBtn.innerHTML = p.isFavorite
-                    ? '<i class="fa-solid fa-star mr-1"></i> Favoride'
-                    : '<i class="fa-regular fa-star mr-1"></i> Yildizla';
+                    ? '<i class="fa-solid fa-star"></i>'
+                    : '<i class="fa-regular fa-star"></i>';
+                favoriteBtn.title = p.isFavorite ? 'Favorilerden cikar' : 'Projeyi favorilere sabitle';
             }
 
             if (archiveBtn) {
                 archiveBtn.disabled = false;
                 archiveBtn.innerHTML = p.archived
-                    ? '<i class="fa-solid fa-box-open mr-1"></i> Arsivden Cikar'
-                    : '<i class="fa-solid fa-box-archive mr-1"></i> Arsive Al';
+                    ? '<i class="fa-solid fa-box-open"></i>'
+                    : '<i class="fa-solid fa-box-archive"></i>';
+                archiveBtn.title = p.archived ? 'Projeyi arsivden cikar' : 'Projeyi arsive al';
             }
 
             if (statusSelect) statusSelect.value = p.statusTag || 'Bekliyor';
